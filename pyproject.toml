@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shallowwater"
+version = "0.1.0"
+description = "Linear shallow-water model on a C-grid over a beta-plane (educational)"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{name="Your Name"}]
+dependencies = ["numpy>=1.21"]
