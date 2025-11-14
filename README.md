@@ -1,9 +1,10 @@
 # shallowwater
 
-A minimal, **linear** shallow-water equations solver on an **Arakawa C-grid** over a (f, β)-plane,
+A minimal shallow-water equations solver on an **Arakawa C-grid** over a (f, β)-plane,
 with **Rayleigh friction** and **SSP-RK3** time stepping.
 
 - Flat bottom, square basin, closed walls (no-normal-flow).
+- Linear or Momentum advection (vector-invariant form).
 - Staggering: `η[j,i]  →  (Ny, Nx)`; `u[j,i]  →  (Ny, Nx+1)`; `v[j,i]  →  (Ny+1, Nx)`.
 - Forcing at the surface via wind stress `(τx on u, τy on v)`, mass source `Q` (at η),
   and optional **tidal geopotential** `φ` (at η) such that momentum sees `η_total = η + φ/g`.
@@ -68,6 +69,8 @@ At u/v points (faces/edges):
 
 * Zonal momentum:    (u_t = +f v - g,\partial_x(\eta+\phi/g) + \tau_x/(\rho H) - r,u).
 * Meridional momentum: (v_t = -f u - g,\partial_y(\eta+\phi/g) + \tau_y/(\rho H) - r,v).
+
+Optionally, momentum advection and laplacian viscosity can be added.
 
 Here (f=f_0+\beta (y-y_0)). `φ` is the **surface geopotential perturbation** (e.g., for tides or pressure loading).
 When `φ` is omitted, the code assumes `φ=0`.

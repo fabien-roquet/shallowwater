@@ -56,7 +56,6 @@ def _times_array(out, T: int) -> np.ndarray:
     times = np.asarray(out.get("time", np.arange(T, dtype=float)))
     return times if times.shape[0] == T else np.arange(T, dtype=float)
 
-# ---- 1) animate_eta ----
 def animate_eta(out: dict,
                 grid=None,
                 interval: int = 100,
@@ -70,7 +69,7 @@ def animate_eta(out: dict,
                 # NEW:
                 remove_mean: bool = True,            # 1) remove spatial mean at each frame
                 symmetric_limits: bool = True,       # center the colorbar around 0
-                contours: bool = True,              # 3) draw contours
+                contours: bool = True,               # 3) draw contours
                 contour_levels: Union[int, Sequence[float]] = 15,
                 contour_colors: Union[str, Sequence[str]] = "k",
                 contour_alpha: float = 0.8,
@@ -104,7 +103,6 @@ def animate_eta(out: dict,
 
     # --- Compute robust color limits; optionally enforce symmetry around 0 ---
     if vmin is None or vmax is None:
-        # robust percentile on absolute values (after mean removal if enabled)
         vmax_robust = float(np.nanpercentile(np.abs(eta_sel), 98.0))
         if vmax_robust == 0.0:
             vmax_robust = 1e-6
@@ -134,32 +132,55 @@ def animate_eta(out: dict,
     if title:
         ax.set_title(f"{title} | t = {_format_time(float(times[0]))}")
 
-    cbar = None
     if show_colorbar:
-        cbar = fig.colorbar(im, ax=ax, label="η [m]")
+        fig.colorbar(im, ax=ax, label="η [m]")
 
-    # --- Contours ---
-    contour_set = None
+    # --- Contours (robust to Matplotlib variants without QuadContourSet.collections) ---
+    contour_artists = []  # will store the actual Artist objects drawn for contours
+
+    def _clear_contours():
+        nonlocal contour_artists
+        if contour_artists:
+            for a in contour_artists:
+                try:
+                    a.remove()
+                except Exception:
+                    pass
+            contour_artists = []
+
     def _draw_contours(field2d):
-        nonlocal contour_set
-        # remove old contour artists
-        if contour_set is not None:
-            for coll in contour_set.collections:
-                coll.remove()
-            contour_set = None
+        nonlocal contour_artists
+        _clear_contours()
+
         # levels handling
         if isinstance(contour_levels, int):
             lvls = np.linspace(vmin, vmax, contour_levels)
         else:
             lvls = contour_levels
+
+        # Draw and capture artists safely
         if Xc is not None and Yc is not None:
-            contour_set = ax.contour(Xc, Yc, field2d, levels=lvls,
-                                     colors=contour_colors, linewidths=contour_linewidths,
-                                     alpha=contour_alpha)
+            cs = ax.contour(Xc, Yc, field2d, levels=lvls,
+                            colors=contour_colors, linewidths=contour_linewidths,
+                            alpha=contour_alpha)
         else:
-            contour_set = ax.contour(field2d, levels=lvls,
-                                     colors=contour_colors, linewidths=contour_linewidths,
-                                     alpha=contour_alpha)
+            cs = ax.contour(field2d, levels=lvls,
+                            colors=contour_colors, linewidths=contour_linewidths,
+                            alpha=contour_alpha)
+
+        # Try standard attributes first
+        grabbed = False
+        if hasattr(cs, "collections"):
+            contour_artists = list(cs.collections)
+            grabbed = True
+        # Some versions also/only expose .artists
+        if not grabbed and hasattr(cs, "artists"):
+            contour_artists = list(cs.artists)
+            grabbed = True
+        # Fallback: infer from Axes collections immediately after drawing
+        if not grabbed and hasattr(ax, "collections"):
+            n = len(lvls) if isinstance(lvls, (list, tuple, np.ndarray)) else 1
+            contour_artists = list(ax.collections[-n:])
 
     if contours:
         _draw_contours(eta_sel[0])
@@ -173,7 +194,8 @@ def animate_eta(out: dict,
             _draw_contours(eta_sel[i])
         return (im,)
 
-    anim = animation.FuncAnimation(fig, update, frames=len(frame_idx), interval=interval, blit=False, repeat=repeat)
+    anim = animation.FuncAnimation(fig, update, frames=len(frame_idx),
+                                   interval=interval, blit=False, repeat=repeat)
     return _EtaAnimation(anim, fig)
 
 # ---- 2) η along the coastline (Hovmöller) ----

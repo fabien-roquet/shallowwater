@@ -10,3 +10,6 @@ class ModelParams:
     y0: float = 0.0
     r: float = 0.0  # Rayleigh friction rate [1/s]
     linear: bool = True  # keep linear; advection can be added later via hooks
+    Ah: float = 0.0   # OPTIONAL lateral viscosity [m^2/s]; 0 disables it
+    Hmin_frac: float = 0.02  # min 2% of H
+
