@@ -8,10 +8,16 @@ version = "0.1.0"
 description = "Linear shallow-water model on a C-grid over a beta-plane (educational)"
 readme = "README.md"
 requires-python = ">=3.9"
-authors = [{name="Your Name"}]
+authors = [{name="Fabien Roquet"}]
+license = {text = "MIT"}
 dependencies = [
   "numpy>=1.24,<2.0",
   "matplotlib>=3.8,<3.9",
   "pillow>=9.0",          # for GIF writer; optional but handy
   "jupyter>=1.0",         # or jupyterlab if you prefer
+]
+
+[project.optional-dependencies]
+numba = [
+  "numba>=0.59,<0.61"  # pick a version compatible with your NumPy
 ]

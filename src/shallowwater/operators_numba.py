@@ -56,23 +56,19 @@ def avg_center_to_v_nb(c):
 @njit(cache=True, fastmath=True)
 def grad_x_on_u_nb(c, dx):
     Ny, Nx = c.shape
-    out = np.empty((Ny, Nx+1), dtype=c.dtype)
-    for j in range(Ny):
-        out[j, 0] = (c[j, 0] - c[j, 0]) / dx
-        for i in range(1, Nx):
-            out[j, i] = (c[j, i] - c[j, i-1]) / dx
-        out[j, Nx] = (c[j, Nx-1] - c[j, Nx-1]) / dx
+    out = np.empty((Ny, Nx + 1), dtype=c.dtype)
+    out[:, 1:Nx] = (c[:, 1:] - c[:, :-1]) / dx
+    out[:, 0] = out[:, 1]
+    out[:, -1] = out[:, -2]
     return out
 
 @njit(cache=True, fastmath=True)
 def grad_y_on_v_nb(c, dy):
     Ny, Nx = c.shape
-    out = np.empty((Ny+1, Nx), dtype=c.dtype)
-    for i in range(Nx):
-        out[0, i] = (c[0, i] - c[0, i]) / dy
-        for j in range(1, Ny):
-            out[j, i] = (c[j, i] - c[j-1, i]) / dy
-        out[Ny, i] = (c[Ny-1, i] - c[Ny-1, i]) / dy
+    out = np.empty((Ny + 1, Nx), dtype=c.dtype)
+    out[1:Ny, :] = (c[1:, :] - c[:-1, :]) / dy
+    out[0, :] = out[1, :]
+    out[-1, :] = out[-2, :]
     return out
 
 @njit(cache=True, fastmath=True)

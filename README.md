@@ -182,20 +182,15 @@ All study cases live in `notebooks/` (animated previews `eta_*.gif` are included
 
 1. **01_wind_gyre.ipynb** — classic β-plane wind-driven gyre (Sverdrup interior + western boundary current).
 2. **02_gravity_waves.ipynb** — linear gravity/Poincaré waves from a perturbed surface.
-
-   * **eta_02b_no_rotation.gif**: same, with (f=0).
 3. **03_tsunami.ipynb** — unforced propagation from a localized uplift (deep water; no rotation/friction).
 4. **04_tides.ipynb** — equilibrium-tide forcing via variable geopotential `φ` (M2-like).
-
-   * **eta_04b_no_rotation.gif**: tide without rotation for comparison.
 5. **05_abyssal_flow.ipynb** — Stommel–Arons-like source (NE) + uniform sink (zero net `Q`) on a β-plane.
 6. **06_seiche.ipynb** — standing basin modes (m,n) with no forcing (clean f-plane seiche).
 7. **07_equatorial_waves.ipynb** — equatorial Kelvin/Rossby packets (β-plane, equator at mid-domain).
-
-   * **eta_07b_pulse.gif**: impulsive equatorial `Q` pulse.
 8. **08_storm_surge.ipynb** — moving cyclone: wind + inverse barometer (`φ`) over a shallow shelf.
 9. **09_wind_driven_kelvin_wave.ipynb** — alongshore wind band builds coastal setup; after shutoff a **coastal Kelvin wave** propagates.
 10. **10_geostrophic_adjustment.ipynb** — Gaussian dome adjusts on an f-plane; start from rest or from a **partially geostrophic** state using `geostrophic_velocities_from_eta`.
+11. **11_Rossby_wave_propagation.ipynb** — Gaussian dome adjusts on an beta-plane; start from **geostrophic** state using `geostrophic_velocities_from_eta`.
 
 ---
 
