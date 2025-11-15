@@ -1,11 +1,23 @@
 # src/shallowwater/operators.py
 import numpy as np
 import os
-from .operators_numba import NUMBA_AVAILABLE
 
-USE_NUMBA = os.getenv("SHALLOWWATER_USE_NUMBA", "1") == "1"  # default: on
+try:
+    from . import operators_numba  # or however you check availability
+    NUMBA_AVAILABLE = True
+except ImportError:
+    NUMBA_AVAILABLE = False
 
-if NUMBA_AVAILABLE and USE_NUMBA:
+flag = os.getenv("SHALLOWWATER_USE_NUMBA", "").strip().lower()
+
+if flag == "":
+    # default: use numba if available
+    USE_NUMBA = NUMBA_AVAILABLE
+else:
+    # explicit override: SHALLOWWATER_USE_NUMBA=0 / false / no / off disables it
+    USE_NUMBA = (flag not in ("0", "false", "no", "off")) and NUMBA_AVAILABLE
+
+if USE_NUMBA:
 
     from .operators_numba import (
         v_on_u_nb as v_on_u,

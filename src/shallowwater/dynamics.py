@@ -1,9 +1,42 @@
 import numpy as np
-from .operators import (avg_center_to_u, avg_center_to_v,
-                        grad_x_on_u, grad_y_on_v,
-                        v_on_u, u_on_v, divergence,
-                        avg_u_to_center, avg_v_to_center,
-                        curl_on_center, laplacian_u, laplacian_v)
+import numpy as np
+from .operators import (
+    avg_center_to_u, avg_center_to_v,
+    avg_u_to_center, avg_v_to_center,
+    grad_x_on_u, grad_y_on_v,
+    v_on_u, u_on_v,
+    divergence, laplacian_u, laplacian_v,
+    # NOTE: do NOT import curl_on_center from operators here
+)
+
+def _curl_on_center_local(u: np.ndarray, v: np.ndarray, dx: float, dy: float) -> np.ndarray:
+    """
+    Relative vorticity ζ = ∂x v − ∂y u on cell centers (Ny, Nx),
+    from C-grid u (Ny, Nx+1) and v (Ny+1, Nx).
+
+    This is a local, robust NumPy implementation, independent of whatever
+    visualize/numba may do with curl_on_center elsewhere.
+    """
+    Ny, Nx1 = u.shape
+    Ny1, Nx = v.shape
+
+    # dv/dx on v points, pad x-edges by copying neighbors
+    dv_dx = np.zeros_like(v)
+    dv_dx[:, 1:Nx] = (v[:, 1:Nx] - v[:, 0:Nx-1]) / dx
+    dv_dx[:, 0] = dv_dx[:, 1]
+    dv_dx[:, -1] = dv_dx[:, -2]
+    # average to centers in y
+    dv_dx_c = 0.5 * (dv_dx[0:Ny, :] + dv_dx[1:Ny1, :])     # (Ny, Nx)
+
+    # du/dy on u points, pad y-edges by copying neighbors
+    du_dy = np.zeros_like(u)
+    du_dy[1:Ny, :] = (u[1:Ny, :] - u[0:Ny-1, :]) / dy
+    du_dy[0, :] = du_dy[1, :]
+    du_dy[-1, :] = du_dy[-2, :]
+    # average to centers in x
+    du_dy_c = 0.5 * (du_dy[:, 0:Nx] + du_dy[:, 1:Nx1])     # (Ny, Nx)
+
+    return dv_dx_c - du_dy_c
 
 def enforce_bcs(u, v):
     u[:, 0] = 0.0
@@ -101,7 +134,7 @@ def tendencies(state, t, grid, params, forcing_fn, hooks=None):
         # 1) velocities & vorticity at centers (η-grid)
         Uc = avg_u_to_center(u)          # (Ny, Nx)
         Vc = avg_v_to_center(v)          # (Ny, Nx)
-        zeta_c = curl_on_center(u, v, grid.dx, grid.dy)   # (Ny, Nx)
+        zeta_c = _curl_on_center_local(u, v, grid.dx, grid.dy)   # (Ny, Nx)
 
         # 2) kinetic energy at centers
         K_c = 0.5 * (Uc * Uc + Vc * Vc)
