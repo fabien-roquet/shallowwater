@@ -13,4 +13,5 @@ class ModelParams:
     Ah: float = 0.0   # OPTIONAL lateral viscosity [m^2/s]; 0 disables it
     Hmin_frac: float = 0.02  # min 2% of H
     Ucap: float = 0.0        # cap |u|,|v| when forming K (m/s); 0 disables
+    qmax: float = 0.0       # OPTIONAL: cap |q|; 0 disables
 
