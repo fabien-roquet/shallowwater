@@ -15,9 +15,11 @@ venv/
 *.ipynb~*
 .profile
 .DS_Store
+.virtual_documents/
 
 # Tools & caches
 .cache/
 .coverage
 .pytest_cache/
 .mypy_cache/
+.github/
