@@ -15,6 +15,7 @@ venv/
 *.ipynb~*
 .profile
 .DS_Store
+.virtual_documents/
 
 # Tools & caches
 .cache/
@@ -24,3 +25,4 @@ venv/
 
 # Folders
 animations/
+# 
