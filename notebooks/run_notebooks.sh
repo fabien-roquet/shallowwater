@@ -86,7 +86,7 @@ fi
 
 # RUN_ALL = true
 # Gather notebooks in current directory only (no subfolders)
-mapfile -t nbs < <(printf "%s\n" ./*.ipynb | sort || true)
+mapfile -t nbs < <(printf "%s\n" *.ipynb | sort || true)
 
 if [[ ${#nbs[@]} -eq 0 ]]; then
   echo "No notebooks (*.ipynb) found in $(pwd)"; exit 0
@@ -94,7 +94,7 @@ fi
 
 any=false
 for nb in "${nbs[@]}"; do
-  [[ "$nb" == "./*.ipynb" ]] && continue  # in case glob didn't match
+  [[ "$nb" == "*.ipynb" ]] && continue  # in case glob didn't match
   if is_excluded "$nb"; then
     echo "Skipping (excluded): $nb"
     continue

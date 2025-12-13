@@ -8,16 +8,23 @@ version = "0.1.0"
 description = "Linear shallow-water model on a C-grid over a beta-plane (educational)"
 readme = "README.md"
 requires-python = ">=3.9"
-authors = [{name="Fabien Roquet"}]
+authors = [{name="Fabien Roquet", email = "fabien.roquet@gu.se"}]
 license = {text = "MIT"}
 dependencies = [
-  "numpy>=1.24,<2.0",
-  "matplotlib>=3.8,<3.9",
+  "numpy>=1.24",
+  "matplotlib>=3.8",
   "pillow>=9.0",          # for GIF writer; optional but handy
   "jupyter>=1.0",         # or jupyterlab if you prefer
 ]
 
 [project.optional-dependencies]
 numba = [
-  "numba>=0.59,<0.61"  # pick a version compatible with your NumPy
+  "numba>=0.59"  # pick a version compatible with your NumPy
 ]
+
+[project.urls]
+Homepage = "https://github.com/fabien-roquet/shallowwater"
+Issues = "https://github.com/fabien-roquet/shallowwater/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
