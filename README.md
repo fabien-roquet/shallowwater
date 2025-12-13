@@ -11,9 +11,16 @@ with **Rayleigh friction** and **SSP-RK3** time stepping.
 
 ---
 
+## Install (from pyPI)
+
+```bash
+pip install shallowwater
+````
+
 ## Install (editable)
 
 ```bash
+git clone https://github.com/fabien-roquet/shallowwater
 cd shallowwater
 python -m venv .venv && source .venv/bin/activate  # or use conda/uv/mamba
 pip install -e .
@@ -34,19 +41,19 @@ The repo includes a helper script `run_notebooks.sh` to execute notebooks **in p
 Make it executable:
 
 ```bash
-chmod +x run_notebooks.sh
+chmod +x notebooks/run_notebooks.sh
 ```
 
 Run a **single** notebook:
 
 ```bash
-./run_notebooks.sh -n notebooks/01_wind_gyre.ipynb
+./notebooks/run_notebooks.sh -n notebooks/01_wind_gyre.ipynb
 ```
 
 Run **all** notebooks in the current directory:
 
 ```bash
-./run_notebooks.sh -a
+./notebooks/run_notebooks.sh -a
 ```
 
 Common options:
