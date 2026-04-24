@@ -1,0 +1,8 @@
+#!/bin/sh
+# Strip outputs from staged notebooks before each commit.
+set -e
+files=$(git diff --cached --name-only -- '*.ipynb')
+if [ -n "$files" ]; then
+  python3 scripts/strip_notebooks.py $files
+  git add $files
+fi

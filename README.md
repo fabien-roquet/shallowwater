@@ -3,7 +3,7 @@
 A minimal shallow-water equations solver on an **Arakawa C-grid** over a (f, β)-plane,
 with **Rayleigh friction** and **SSP-RK3** time stepping.
 
-- Flat bottom, square basin, closed walls (no-normal-flow).
+- Scalar or variable bathymetry, rectangular basin, closed walls (no-normal-flow).
 - Linear or Momentum advection (vector-invariant form).
 - Staggering: `η[j,i]  →  (Ny, Nx)`; `u[j,i]  →  (Ny, Nx+1)`; `v[j,i]  →  (Ny+1, Nx)`.
 - Forcing at the surface via wind stress `(τx on u, τy on v)`, mass source `Q` (at η),
@@ -26,48 +26,54 @@ python -m venv .venv && source .venv/bin/activate  # or use conda/uv/mamba
 pip install -e .
 ````
 
-## Run the example notebook
+## Run a guided lab notebook
 
 Launch Jupyter from the same environment:
 
 ```bash
-jupyter notebook notebooks/01_wind_gyre.ipynb
+jupyter notebook notebooks/01_waves_in_a_box.ipynb
 ```
 
-## Batch-running notebooks
+The `notebooks/` folder now contains the guided lab notebooks only. Notebook outputs should not be committed; the included git hook strips outputs and execution counts before commits.
 
-The repo includes a helper script `run_notebooks.sh` to execute notebooks **in place** (outputs are written back into the `.ipynb` files using `jupyter nbconvert`).
+## Run the converted tutorial scripts
 
-Make it executable:
+The original tutorial notebooks have been converted to Python scripts in `scripts/`. These scripts generate animations in `animations/`, which is ignored by git.
+
+Make the runner executable:
 
 ```bash
-chmod +x notebooks/run_notebooks.sh
+chmod +x scripts/run_scripts.sh
 ```
 
-Run a **single** notebook:
+Run one script:
 
 ```bash
-./notebooks/run_notebooks.sh -n notebooks/01_wind_gyre.ipynb
+./scripts/run_scripts.sh -s scripts/03_tsunami_shoaling_sponge.py
 ```
 
-Run **all** notebooks in the current directory:
+Run all converted tutorial scripts:
 
 ```bash
-./notebooks/run_notebooks.sh -a
+./scripts/run_scripts.sh -a
 ```
 
 Common options:
 
-* `-t SECONDS` — cell timeout (default: `3600`)
-* `-k NAME` — kernel name (e.g. `python3`)
-* `-x GLOB` — exclude pattern (repeatable), e.g. `-x "*WIP*.ipynb"`
-* `-c` — continue on errors (maps to `--allow-errors`)
+* `-x GLOB` — exclude a script pattern, e.g. `-x "*Rossby*"`
+* `-c` — continue on errors
 
----
+Generated files are written to:
+
+```text
+animations/
+```
+
+That folder is intentionally not tracked by git.
 
 ## What’s inside (model at a glance)
 
-**Equations (linearized, flat bottom)**
+**Equations (linearized form; scalar or variable bathymetry)**
 At η-points (centers):
 
 * Continuity:  (\eta_t = -\nabla\cdot \mathbf{F} + Q), with (\mathbf{F} = (H u, H v)).
@@ -84,7 +90,7 @@ When `φ` is omitted, the code assumes `φ=0`.
 
 **Time stepping**
 
-* Strong-stability-preserving **RK3**; use `compute_dt_cfl(...)` for a safe CFL step based on (c=\sqrt{gH}).
+* Strong-stability-preserving **RK3**; use `compute_dt_cfl(...)` for a safe CFL step based on the fastest shallow-water wave speed, using max depth when `H` is spatially variable.
 
 **Boundary conditions**
 
@@ -110,8 +116,10 @@ Top-level:
 ```
 pyproject.toml
 README.md
-run_notebooks.sh
-notebooks/   # study cases (see list below)
+labs/        # written lab instructions
+notebooks/   # guided lab notebooks, kept without outputs
+scripts/     # converted tutorial scripts and helper scripts
+animations/  # generated movies; ignored by git
 tests/
 ```
 
@@ -183,23 +191,58 @@ def ic_balanced(g, p):
 
 ---
 
-## Study cases (notebooks)
+## Study cases (scripts)
 
-All study cases live in `notebooks/` (animated previews `eta_*.gif` are included):
+The original tutorial notebooks are now executable Python scripts in `scripts/`. Run them with `scripts/run_scripts.sh`; generated movies are saved in `animations/`.
 
-1. **01_wind_gyre.ipynb** — classic β-plane wind-driven gyre (Sverdrup interior + western boundary current).
-2. **02_gravity_waves.ipynb** — linear gravity/Poincaré waves from a perturbed surface.
-3. **03_tsunami.ipynb** — unforced propagation from a localized uplift (deep water; no rotation/friction).
-4. **04_tides.ipynb** — equilibrium-tide forcing via variable geopotential `φ` (M2-like).
-5. **05_abyssal_flow.ipynb** — Stommel–Arons-like source (NE) + uniform sink (zero net `Q`) on a β-plane.
-6. **06_seiche.ipynb** — standing basin modes (m,n) with no forcing (clean f-plane seiche).
-7. **07_equatorial_waves.ipynb** — equatorial Kelvin/Rossby packets (β-plane, equator at mid-domain).
-8. **08_storm_surge.ipynb** — moving cyclone: wind + inverse barometer (`φ`) over a shallow shelf.
-9. **09_wind_driven_kelvin_wave.ipynb** — alongshore wind band builds coastal setup; after shutoff a **coastal Kelvin wave** propagates.
-10. **10_geostrophic_adjustment.ipynb** — Gaussian dome adjusts on an f-plane; start from rest or from a **partially geostrophic** state using `geostrophic_velocities_from_eta`.
-11. **11_Rossby_wave_propagation.ipynb** — Gaussian dome adjusts on an beta-plane; start from **geostrophic** state using `geostrophic_velocities_from_eta`.
+1. **scripts/01_wind_gyre.py** — classic β-plane wind-driven gyre.
+2. **scripts/02_gravity_waves.py** — linear gravity/Poincaré waves from a perturbed surface.
+3. **scripts/03_tsunami.py** — unforced propagation from a localized uplift over constant depth.
+4. **scripts/03_tsunami_shoaling_sponge.py** — tsunami-like wave over variable bathymetry with a sponge layer.
+5. **scripts/04_tides.py** — equilibrium-tide forcing via variable geopotential `φ`.
+6. **scripts/05_abyssal_flow.py** — Stommel–Arons-like source and sink on a β-plane.
+7. **scripts/06_seiche.py** — standing basin modes with no forcing.
+8. **scripts/07_equatorial_waves.py** — equatorial Kelvin/Rossby packets.
+9. **scripts/08_storm_surge.py** — moving cyclone: wind plus inverse barometer over a shallow shelf.
+10. **scripts/09_wind_driven_kelvin_wave.py** — coastal setup and Kelvin-wave release.
+11. **scripts/10_geostrophic_adjustment.py** — Gaussian dome adjustment on an f-plane.
+12. **scripts/11_Rossby_wave_propagation.py** — balanced Gaussian dome on a β-plane.
+13. **scripts/12_wind_gyre_reduced_gravity.py** — reduced-gravity wind-driven gyre examples.
 
----
+
+## Teaching labs
+
+A guided five-lab sequence is available in `labs/`, with classroom notebooks directly in `notebooks/`:
+
+1. **Waves in a Box** — `notebooks/01_waves_in_a_box.ipynb`
+2. **Tsunami Across the Ocean** — `notebooks/02_tsunami_shoaling.ipynb`; written instructions are available in English and Swedish (`labs/02_tsunami_shoaling_sv.md`)
+3. **Wind, Storms, and Coastal Sea Level** — `notebooks/03_wind_storms_and_coasts.ipynb`
+4. **Rotation Changes Everything** — `notebooks/04_rotation_geostrophy_rossby.ipynb`
+5. **Ocean Pathways** — `notebooks/05_ocean_pathways.ipynb`
+
+The lab notebooks are short, guided, and classroom-friendly. The more technical examples live as scripts in `scripts/`.
+
+## Keeping notebooks clean in git
+
+Notebook outputs and execution counts should not be committed. Before committing, run:
+
+```bash
+python3 scripts/strip_notebooks.py
+```
+
+To make this automatic for this repository, install the included git hook once:
+
+```bash
+git config core.hooksPath tools/git-hooks
+```
+
+Or, if you use `pre-commit`:
+
+```bash
+pre-commit install
+```
+
+After either setup, notebook outputs are stripped before each commit.
 
 ## Notes & conventions
 
@@ -210,7 +253,7 @@ All study cases live in `notebooks/` (animated previews `eta_*.gif` are included
   * `u: (Ny, Nx+1)` staggered in x at `(x_u, y_u)`
   * `v: (Ny+1, Nx)` staggered in y at `(x_v, y_v)`
 * **Forcing return**: 3-tuple `(τx_u, τy_v, Q)` **or** 4-tuple `(τx_u, τy_v, Q, φ)`. If you don’t need `φ`, omit it.
-* **CFL**: external celerity (c=\sqrt{gH}). `compute_dt_cfl` picks a safe step using min(dx,dy).
+* **CFL**: external celerity (c=\sqrt{gH}). `compute_dt_cfl` picks a safe step using min(dx,dy) and the maximum depth when `H` is spatially variable.
 
 ---
 
@@ -226,3 +269,15 @@ A `tests/` folder is provided as a placeholder; feel free to contribute simple r
 MIT.
 
 
+
+## Tsunami shoaling lab
+
+This version includes a simple educational tsunami-shoaling example with variable bathymetry and a sponge layer:
+
+- `src/shallowwater/bathymetry.py` supports scalar, 1-D, or 2-D `params.H`.
+- `src/shallowwater/sponge.py` provides `make_sponge_hook(...)` for boundary damping.
+- `notebooks/02_tsunami_shoaling.ipynb` is the guided classroom notebook.
+- `scripts/03_tsunami_shoaling_sponge.py` is the converted technical example and writes its movie to `animations/`.
+- `labs/02_tsunami_shoaling.md` and `labs/02_tsunami_shoaling_sv.md` contain English and Swedish lab instructions.
+
+The example is intended to teach shoaling. It is not a run-up or inundation model.

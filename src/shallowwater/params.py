@@ -1,17 +1,19 @@
 from dataclasses import dataclass
+from typing import Union
+import numpy as np
+
 
 @dataclass
 class ModelParams:
     g: float = 9.81
-    H: float = 1000.0
+    H: Union[float, np.ndarray] = 1000.0  # scalar, x-profile, or eta-grid bathymetry [m]
     rho: float = 1025.0
     f0: float = 1.0e-4
     beta: float = 2.0e-11
     y0: float = 0.0
     r: float = 0.0  # Rayleigh friction rate [1/s]
-    linear: bool = True  # keep linear; advection can be added later via hooks
+    linear: bool = True
     Ah: float = 0.0   # OPTIONAL lateral viscosity [m^2/s]; 0 disables it
-    Hmin_frac: float = 0.02  # min 2% of H
+    Hmin_frac: float = 0.02  # min 2% of local H
     Ucap: float = 0.0        # cap |u|,|v| when forming K (m/s); 0 disables
     qmax: float = 0.0       # OPTIONAL: cap |q|; 0 disables
-
