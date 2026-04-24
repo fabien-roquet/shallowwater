@@ -4,6 +4,7 @@
 Run from the repository root or from the scripts/ directory. Generated movies
 are written to animations/, which is intentionally ignored by git.
 """
+import os
 from pathlib import Path
 import sys
 

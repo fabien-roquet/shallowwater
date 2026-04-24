@@ -88,7 +88,7 @@ def divergence_nb(Fx, Fy, dx, dy):
 
 @njit(cache=True, fastmath=True)
 def curl_on_center_nb(u, v, dx, dy):
-    # ƒÄ = İx v | İy u at centers
+    # zeta = dx v - dy u at centers
     Ny, Nx1 = u.shape
     Ny1, Nx = v.shape
     Ny0 = Ny
