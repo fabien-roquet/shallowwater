@@ -1,6 +1,6 @@
 # Labb 02 - Tsunami över havet: hastighet, uppgrundning och svamplager
 
-**Baserad på:** `notebooks/02_tsunami_shoaling.ipynb` och de tekniska skripten `scripts/03_tsunami.py` samt `scripts/03_tsunami_shoaling_sponge.py`.
+**Baserad på:** `notebooks/02_tsunami_shoaling.ipynb` och det tekniska skript `scripts/03_tsunami_shoaling_sponge.py`.
 
 ## Berättelse
 

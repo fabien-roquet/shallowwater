@@ -29,7 +29,6 @@ A tsunami can be low in the deep ocean but grow near the coast as the water beco
 ## Source material
 
 - `notebooks/02_tsunami_shoaling.ipynb`
-- `scripts/03_tsunami.py`
 - `scripts/03_tsunami_shoaling_sponge.py`
 
 ## Student worksheet
