@@ -1,27 +1,62 @@
-# Python
+# Byte-compiled / cache files
 __pycache__/
 *.py[cod]
-*.egg-info/
-dist/
-build/
+*$py.class
 
-# Envs
+# Python build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
 .venv/
 venv/
-.env
+env/
+ENV/
+
+# Test / coverage output
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb~*
-.profile
-.DS_Store
 .virtual_documents/
 
-# Tools & caches
-.cache/
-.coverage
-.pytest_cache/
-.mypy_cache/
-
-# Folders
+# Generated model outputs
 animations/
+outputs/
+figures/
+movies/
+*.mp4
+*.mov
+*.avi
+*.gif
+*.webm
+
+# Generated data / diagnostics
+*.nc
+*.h5
+*.hdf5
+*.zarr/
+*.npz
+
+# Logs
+*.log
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local config
+.env
+.env.*
+
