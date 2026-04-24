@@ -74,6 +74,12 @@ ic_fn = lambda g, p: ic_balanced_fraction(g, p, degree_of_balance=0.8)
 
 forcing_fn = lambda t, g, p: zero_forcing(t, g, p)
 
+dt = compute_dt_cfl(grid, params, cfl=0.4)
+
+# Run for five inertial periods
+inertial_period = 2.0 * np.pi / abs(params.f0)
+tmax = 5.0 * inertial_period
+
 out = run_model(tmax, dt, grid, params, forcing_fn, ic_fn,
                 save_every=20, out_vars=("eta","u","v"))
 

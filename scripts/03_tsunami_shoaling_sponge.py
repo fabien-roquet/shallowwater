@@ -74,7 +74,7 @@ ax1.set_xlabel("distance east [km]")
 ax1.set_ylabel("depth H [m]")
 ax1.set_title("Ocean bottom: deep ocean to shallow coast")
 ax1.grid(True)
-plt.show()
+plt.close(fig)
 
 fig, ax2 = plt.subplots(figsize=(8, 3))
 c = wave_speed(grid, params)
@@ -83,7 +83,7 @@ ax2.set_xlabel("distance east [km]")
 ax2.set_ylabel("wave speed sqrt(gH) [m/s]")
 ax2.set_title("Long waves are fastest in deep water")
 ax2.grid(True)
-plt.show()
+plt.close(fig)
 
 
 # ## 2. Initial tsunami bump
@@ -109,7 +109,7 @@ plt.colorbar(label="eta [m]")
 plt.xlabel("x [km]")
 plt.ylabel("y [km]")
 plt.title("Initial sea-surface displacement")
-plt.show()
+plt.close("all")
 
 
 # ## 3. Add a sponge layer
@@ -128,7 +128,7 @@ plt.colorbar(label="sponge strength")
 plt.xlabel("x [km]")
 plt.ylabel("y [km]")
 plt.title("Western sponge layer")
-plt.show()
+plt.close("all")
 
 
 # ## 4. Run the model
@@ -184,7 +184,7 @@ ax2.invert_yaxis()
 ax2.set_ylabel("depth H [m]")
 ax2.legend(loc="upper right")
 plt.title("Wave height grows where the ocean gets shallow")
-plt.show()
+plt.close("all")
 
 
 # ## 7. Try experiments
