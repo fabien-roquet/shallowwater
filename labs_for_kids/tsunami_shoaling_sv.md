@@ -1,10 +1,17 @@
-# Labb 02 - En tsunami som närmar sig stranden
+# En tsunami som närmar sig stranden - lärarmaterial
 
 **Tid:** cirka 30 minuter  
 **Målgrupp:** yngre elever, ungefär 10 år  
-**Notebook:** `notebooks/02_tsunami_shoaling_sv_solution.ipynb`
+**Notebook:** `labs_for_kids/tsunami_shoaling_sv.ipynb`  
+**Binder:** <https://mybinder.org/v2/gh/fabien-roquet/shallowwater/main?labpath=labs_for_kids/tsunami_shoaling_sv.ipynb>  
+**Författare:** Fabien Roquet (University of Gothenburg)  
+**Datum:** 13 May 2026  
+**Event:** Upptäckarklubben  
+**Animationsscript:** `labs_for_kids/make_tsunami_shoaling_sv_animations.py`
 
-Den här aktiviteten är tänkt som en kort, visuell upptäcktsresa. Barnen behöver inte räkna eller skriva kod. Läraren kan köra notebooken och pausa vid bilderna och animationerna.
+Det här dokumentet är kompletterande material för läraren och behöver inte delas med eleverna.
+
+Den här aktiviteten är tänkt som en kort, visuell upptäcktsresa. Barnen behöver inte räkna eller ändra kod. De kan köra notebooken själva i grupper om 2 till 3 och pausa vid bilderna och animationerna.
 
 ## Berättelse
 
@@ -14,7 +21,7 @@ När vågen kommer in mot kusten blir havet grundare. Då bromsas vågen. Vattne
 
 Modellen visar inte en riktig katastrof och inte hur vatten rinner upp på land. Den visar bara en viktig idé: **djupet under vågen spelar roll**.
 
-## Tre saker att upptäcka
+## Fyra saker att upptäcka
 
 Efter aktiviteten ska barnen kunna säga:
 
@@ -88,3 +95,13 @@ I figurerna förstoras vågens höjd jättemycket. Annars skulle den nästan int
 Håll aktiviteten visuell och muntlig. Använd ord som **djup**, **grunt**, **snabb**, **långsam**, **vågtopp**, **våglängd** och **uppgrundning**. Om gruppen är nyfiken kan man nämna att forskare kan räkna på vågens fart, men i den här aktiviteten räcker observationen: **djupare vatten ger snabbare långvågor**.
 
 I notebooken finns en mjuk kant långt ute i havet. Den gör att vågor som går åt fel håll inte studsar tillbaka och stör bilden. Den behöver inte förklaras för barnen om tiden är kort.
+
+## Spara animationer lokalt
+
+Notebooken visar animationerna men sparar dem inte. Om du vill skapa GIF-filer lokalt, kör:
+
+```bash
+uv run python labs_for_kids/make_tsunami_shoaling_sv_animations.py
+```
+
+Filerna sparas i `labs_for_kids/` med namn som börjar med `tsunami_shoaling_sv_`.
