@@ -1,5 +1,7 @@
 # forcing.py (inside shallowwater)
 
+from pathlib import Path
+
 import numpy as np
 
 def zero_forcing(t, grid, params, **kwargs):
@@ -15,6 +17,109 @@ def wind_gyre_forcing(t, grid, params, tau0=0.1, **kwargs):
     tauy = np.zeros((grid.Ny + 1, grid.Nx))
     Q = np.zeros((grid.Ny, grid.Nx))
     return taux, tauy, Q
+
+
+def uniform_wind_forcing(
+    t,
+    grid,
+    params,
+    *,
+    tau_x=0.1,
+    tau_y=0.0,
+    t_ramp=0.0,
+    t_off=None,
+):
+    """Spatially uniform wind stress with optional ramp-up and shut-off.
+
+    Parameters are in SI units: stress in N m^-2 and time in seconds.  If
+    ``t_off`` is supplied, the wind is zero for ``t > t_off``.
+    """
+    if t_off is not None and t > t_off:
+        factor = 0.0
+    elif t_ramp is not None and t_ramp > 0.0:
+        factor = float(np.clip(t / t_ramp, 0.0, 1.0))
+    else:
+        factor = 1.0
+
+    taux = np.full((grid.Ny, grid.Nx + 1), factor * float(tau_x))
+    tauy = np.full((grid.Ny + 1, grid.Nx), factor * float(tau_y))
+    Q = np.zeros((grid.Ny, grid.Nx))
+    return taux, tauy, Q
+
+
+def center_wind_to_staggered(tau_x, tau_y, grid):
+    """Map cell-centred wind stress to the model's C-grid velocity points."""
+    tau_x = np.asarray(tau_x, dtype=float)
+    tau_y = np.asarray(tau_y, dtype=float)
+    expected = (grid.Ny, grid.Nx)
+    if tau_x.shape != expected or tau_y.shape != expected:
+        raise ValueError(
+            f"tau_x and tau_y must both have cell-centre shape {expected}; "
+            f"got {tau_x.shape} and {tau_y.shape}."
+        )
+    if not np.isfinite(tau_x).all() or not np.isfinite(tau_y).all():
+        raise ValueError("Wind-stress arrays must contain only finite values.")
+
+    taux_u = np.empty((grid.Ny, grid.Nx + 1), dtype=float)
+    tauy_v = np.empty((grid.Ny + 1, grid.Nx), dtype=float)
+    taux_u[:, 1:grid.Nx] = 0.5 * (tau_x[:, :-1] + tau_x[:, 1:])
+    taux_u[:, 0] = tau_x[:, 0]
+    taux_u[:, -1] = tau_x[:, -1]
+    tauy_v[1:grid.Ny, :] = 0.5 * (tau_y[:-1, :] + tau_y[1:, :])
+    tauy_v[0, :] = tau_y[0, :]
+    tauy_v[-1, :] = tau_y[-1, :]
+    return taux_u, tauy_v
+
+
+def make_wind_forcing(tau_x, tau_y, grid, *, envelope=None):
+    """Return a forcing callable from static cell-centred wind-stress maps.
+
+    ``tau_x`` and ``tau_y`` have shape ``(Ny, Nx)`` and units N m^-2.  The
+    optional ``envelope(t)`` supplies a dimensionless scalar multiplier.
+    Conversion to the staggered grid occurs once when this function is called.
+    """
+    taux_u, tauy_v = center_wind_to_staggered(tau_x, tau_y, grid)
+    zeros = np.zeros((grid.Ny, grid.Nx))
+
+    def forcing(t, model_grid, params):
+        if model_grid.Nx != grid.Nx or model_grid.Ny != grid.Ny:
+            raise ValueError("Wind forcing was created for a different grid shape.")
+        factor = 1.0 if envelope is None else float(envelope(t))
+        if not np.isfinite(factor):
+            raise ValueError("Wind-forcing envelope must return a finite scalar.")
+        return factor * taux_u, factor * tauy_v, zeros.copy()
+
+    return forcing
+
+
+def make_wind_forcing_from_file(
+    path,
+    grid,
+    *,
+    tau_x_key="tau_x",
+    tau_y_key="tau_y",
+    envelope=None,
+):
+    """Load a static wind-stress map once and return a forcing callable.
+
+    The input must be an ``.npz`` archive containing cell-centred ``tau_x`` and
+    ``tau_y`` arrays in N m^-2.  Each array must have shape ``(Ny, Nx)``.
+    """
+    file_path = Path(path)
+    if file_path.suffix.lower() != ".npz":
+        raise ValueError("Wind-forcing maps must be supplied as a .npz archive.")
+    try:
+        with np.load(file_path, allow_pickle=False) as archive:
+            missing = [key for key in (tau_x_key, tau_y_key) if key not in archive]
+            if missing:
+                raise ValueError(
+                    f"Wind-forcing archive {file_path} is missing key(s): {missing}."
+                )
+            tau_x = np.asarray(archive[tau_x_key], dtype=float)
+            tau_y = np.asarray(archive[tau_y_key], dtype=float)
+    except OSError as exc:
+        raise ValueError(f"Could not read wind-forcing file {file_path}: {exc}") from exc
+    return make_wind_forcing(tau_x, tau_y, grid, envelope=envelope)
     
 def tidal_potential_forcing(t, grid, params, *,
                             amp_eta_eq=0.2,

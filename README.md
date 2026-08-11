@@ -17,27 +17,34 @@ animations/             Generated animations; not tracked by git
 
 The `animations/` directory is for generated output and should be ignored by git.
 
-## Installation with uv
+## Installation from PyPI
 
-This project can be run with [`uv`](https://docs.astral.sh/uv/), which manages the Python environment and dependencies.
-
-From the repository root:
+Install the released package with pip:
 
 ```bash
-uv sync
+python -m pip install shallowwater
 ```
 
-Then test that the package imports:
+Optional numba acceleration is available as an extra:
 
 ```bash
-uv run python -c "import shallowwater; print('shallowwater import OK')"
+python -m pip install "shallowwater[numba]"
 ```
 
-If you prefer not to use `uv`, create your own Python environment and install the package in editable mode:
+Then test that the package imports and inspect the active backend:
+
+```bash
+python -c "import shallowwater; print(shallowwater.backend_info())"
+```
+
+For development from a source checkout, install in editable mode:
 
 ```bash
 python -m pip install -e .
 ```
+
+Developers who use `uv` may instead run `uv sync`; the Master-level course
+materials in `MT1562_python_lab_waves/` use only the pinned PyPI/pip workflow.
 
 ## Guided labs
 
@@ -232,6 +239,35 @@ src/shallowwater/sponge.py
 ```
 
 This is a teaching example for wave propagation and shoaling. It is not a full coastal inundation or wetting-and-drying model.
+
+## Bathymetry and wind maps from files
+
+Version 0.1.4 adds small validated input helpers while preserving the existing
+solver interfaces.
+
+Bathymetry maps may be loaded from `.npy`, `.npz`, `.csv`, or `.txt` files:
+
+```python
+H = load_bathymetry("bathymetry.npz", grid)
+params = ModelParams(H=H)
+```
+
+The map must have exact cell-centre shape `(Ny, Nx)`, contain finite positive
+depth in metres, and use array order `(y, x)`. The loader does not interpolate,
+reproject, or create dry land.
+
+A static cell-centred wind-stress map can be loaded once and wrapped in the
+normal forcing-callable interface:
+
+```python
+forcing_fn = make_wind_forcing_from_file(
+    "wind.npz",
+    grid,
+    envelope=lambda t: min(1.0, t / 3600.0),
+)
+```
+
+The `.npz` file contains `tau_x` and `tau_y`, both `(Ny, Nx)` in N m^-2.
 
 ## Keeping notebooks clean
 

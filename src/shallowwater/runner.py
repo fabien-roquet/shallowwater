@@ -53,9 +53,13 @@ def run_model(
     """
     # initial state
     eta0, u0, v0 = ic_fn(grid, params)
-    if np.max(np.abs(eta0)) > 1e-6 or np.max(np.abs(u0)) > 1e-6 or np.max(np.abs(v0)) > 1e-6:
-        print("WARNING: IC is not near rest! max(|eta|,|u|,|v|) =",
-              np.max(np.abs(eta0)), np.max(np.abs(u0)), np.max(np.abs(v0)))
+    if show_progress:
+        print(
+            "Initial-condition maxima (eta, u, v) =",
+            np.max(np.abs(eta0)),
+            np.max(np.abs(u0)),
+            np.max(np.abs(v0)),
+        )
     state = {"eta": eta0.copy(), "u": u0.copy(), "v": v0.copy()}
     t = 0.0
 

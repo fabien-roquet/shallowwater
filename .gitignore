@@ -45,6 +45,20 @@ movies/
 *.zarr/
 *.npz
 
+# Small, intentional course input maps
+!MT1562_python_lab_waves/data/
+!MT1562_python_lab_waves/data/*.npz
+
+# LaTeX build intermediates (compiled course PDFs are kept)
+*.aux
+*.fdb_latexmk
+*.fls
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
+
 # Logs
 *.log
 
@@ -64,4 +78,3 @@ Thumbs.db
 .venv/
 .uv-cache/
 uv-cache/
-
