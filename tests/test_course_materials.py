@@ -41,21 +41,52 @@ def test_student_solution_pairs_share_structure_and_code():
         assert "**Solution.**" in "\n".join(cell.source for cell in solution.cells)
 
 
-def test_part_c_has_required_report_sections():
-    text = "\n".join(cell.source for cell in _read("part_c_project.ipynb").cells)
+def test_part_c_report_template_has_required_sections():
+    text = "\n".join(
+        cell.source for cell in _read("part_c_project_report_template.ipynb").cells
+    )
     for heading in (
         "## Group and research question",
         "## Prediction",
-        "## Baseline configuration",
-        "## Controlled variations",
-        "## Diagnostics",
-        "## Results",
-        "## Comparison with theory",
-        "## Limitations",
+        "## Model scope",
+        "## Reusable experiment function",
+        "## Experiment",
+        "## Results and interpretation",
         "## Conclusion",
         "## Contributions and submission check",
     ):
         assert heading in text
+    assert "G (Godkänt)" in text
+    assert "U (Underkänt)" in text
+    assert "| Criterion | Weight |" not in text
+    assert "## Comparison with theory" not in text
+    assert "## Limitations" not in text
+
+    report = _read("part_c_project_report_template.ipynb")
+    code_cells = [cell for cell in report.cells if cell.cell_type == "code"]
+    assert len(code_cells) == 2
+    code_text = "\n".join(cell.source for cell in code_cells)
+    assert "def make_initial_state(" in code_text
+    assert "def run_case(" in code_text
+    assert "plot_hovmoller" not in code_text
+    assert "animate_case" not in code_text
+
+
+def test_part_c_toolbox_owns_mapped_input_demonstrations():
+    part_b_text = "\n".join(
+        cell.source for cell in _read("part_b_bathymetry_student.ipynb").cells
+    )
+    toolbox_text = "\n".join(
+        cell.source for cell in _read("part_c_project_description.ipynb").cells
+    )
+
+    assert "## 4. Short wind-forced demonstration" in part_b_text
+    assert "load_bathymetry" not in part_b_text
+    assert "make_wind_forcing_from_file" not in part_b_text
+    assert "## 4. Bathymetry supplied as a file" in toolbox_text
+    assert "## 5. Wind forcing supplied as a file" in toolbox_text
+    assert "ax.contour(" in toolbox_text
+    assert "ax.quiver(" in toolbox_text
 
 
 def test_course_input_data_are_valid():

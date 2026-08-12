@@ -14,6 +14,7 @@ import tomllib
 
 import nbformat
 import numpy as np
+from PIL import Image
 
 
 COURSE_ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,7 @@ REPO_ROOT = COURSE_ROOT.parent
 NOTEBOOK_DIR = COURSE_ROOT / "notebooks"
 DATA_DIR = COURSE_ROOT / "data"
 LECTURE_DIR = COURSE_ROOT / "lecture"
+ANIMATION_DIR = COURSE_ROOT / "animations"
 EXPECTED_VERSION = "0.1.4"
 
 NOTEBOOKS = (
@@ -28,7 +30,19 @@ NOTEBOOKS = (
     "part_a_waves_solutions.ipynb",
     "part_b_bathymetry_student.ipynb",
     "part_b_bathymetry_solutions.ipynb",
-    "part_c_project.ipynb",
+    "part_c_project_description.ipynb",
+    "part_c_project_report_template.ipynb",
+)
+
+EXPECTED_ANIMATIONS = (
+    "part_a_first_wave.gif",
+    "part_a_uniform_400m.gif",
+    "part_a_uniform_900m.gif",
+    "part_b_shelf_120m.gif",
+    "part_b_shelf_300m.gif",
+    "part_b_wind_setup_release.gif",
+    "part_c_toolbox_bathymetry.gif",
+    "part_c_toolbox_wind.gif",
 )
 
 
@@ -71,6 +85,13 @@ def validate_notebooks():
                     fail(f"Generated source notebook has execution count: {name}, cell {index}")
             if absolute_path_pattern.search(cell.source):
                 fail(f"Absolute user path found in {name}, cell {index}")
+            if cell.cell_type == "markdown" and any(
+                delimiter in cell.source for delimiter in (r"\(", r"\)", r"\[", r"\]")
+            ):
+                fail(
+                    f"Non-dollar MathJax delimiter found in {name}, cell {index}; "
+                    "use $...$ or $$...$$."
+                )
 
     for part in ("part_a_waves", "part_b_bathymetry"):
         student = loaded[f"{part}_student.ipynb"]
@@ -89,22 +110,98 @@ def validate_notebooks():
         if "**Solution.**" not in solution_text:
             fail(f"No solution responses found in {part} solution notebook")
 
-    part_c_text = "\n".join(cell.source for cell in loaded["part_c_project.ipynb"].cells)
+    part_b_text = "\n".join(
+        cell.source for cell in loaded["part_b_bathymetry_student.ipynb"].cells
+    )
+    if "## 4. Short wind-forced demonstration" not in part_b_text:
+        fail("Part B does not retain the short wind-forced demonstration as section 4")
+    moved_content = (
+        "load_bathymetry", "make_wind_forcing_from_file",
+        "Controls available for Part C", "Part C proposal",
+    )
+    unexpected = [item for item in moved_content if item in part_b_text]
+    if unexpected:
+        fail(f"Part B still contains content intended for the Part C toolbox: {unexpected}")
+
+    toolbox_text = "\n".join(
+        cell.source for cell in loaded["part_c_project_description.ipynb"].cells
+    )
+    toolbox_required = (
+        "Demonstration time:** about 45 minutes",
+        "## 2. Controls available for Part C",
+        "## 4. Bathymetry supplied as a file",
+        "## 5. Wind forcing supplied as a file",
+        "part_c_toolbox_bathymetry.gif",
+        "part_c_toolbox_wind.gif",
+        "ax.contour(",
+        "ax.quiver(",
+    )
+    missing_toolbox = [item for item in toolbox_required if item not in toolbox_text]
+    if missing_toolbox:
+        fail(f"Part C project-description toolbox is incomplete: {missing_toolbox}")
+
+    part_c_text = "\n".join(
+        cell.source for cell in loaded["part_c_project_report_template.ipynb"].cells
+    )
     required = (
         "## Group and research question",
         "## Prediction",
-        "## Baseline configuration",
-        "## Controlled variations",
-        "## Diagnostics",
-        "## Results",
-        "## Comparison with theory",
-        "## Limitations",
+        "## Model scope",
+        "## Reusable experiment function",
+        "## Experiment",
+        "## Results and interpretation",
         "## Conclusion",
         "## Contributions and submission check",
     )
     missing = [heading for heading in required if heading not in part_c_text]
     if missing:
         fail(f"Part C is missing required headings: {missing}")
+    if "f=0.0" not in part_c_text or "f0=f" not in part_c_text:
+        fail("Part C does not expose rotation through the course-facing parameter f")
+    forbidden_report_scaffolding = (
+        "| Criterion | Weight |", "## Comparison with theory", "## Limitations",
+        "plot_hovmoller", "animate_case", "baseline = run_case",
+    )
+    unexpected_scaffolding = [
+        item for item in forbidden_report_scaffolding if item in part_c_text
+    ]
+    if unexpected_scaffolding:
+        fail(f"Part C report template is over-scaffolded: {unexpected_scaffolding}")
+    report_code_cells = [
+        cell for cell in loaded["part_c_project_report_template.ipynb"].cells
+        if cell.cell_type == "code"
+    ]
+    if len(report_code_cells) != 2:
+        fail("Part C report template should contain only imports and reusable functions")
+    if "G (Godkänt)" not in part_c_text or "U (Underkänt)" not in part_c_text:
+        fail("Part C report template does not state the G/U assessment scheme")
+
+    generated_text = "\n".join(
+        cell.source
+        for name in NOTEBOOKS
+        for cell in loaded[name].cells
+    )
+    missing_animations = [name for name in EXPECTED_ANIMATIONS if name not in generated_text]
+    if missing_animations:
+        fail(f"Course notebooks do not generate all expected animations: {missing_animations}")
+
+
+def validate_support_files():
+    installation = COURSE_ROOT / "INSTALLATION.md"
+    if not installation.exists():
+        fail("The cross-platform installation guide is missing")
+    installation_text = installation.read_text(encoding="utf-8")
+    required_topics = (
+        "Miniconda", "Visual Studio Code", "Jupyter", "Windows", "macOS",
+        "Linux", "python -m pip", "shallowwater[numba]", "Select Kernel",
+    )
+    missing_topics = [topic for topic in required_topics if topic not in installation_text]
+    if missing_topics:
+        fail(f"The installation guide is missing required topics: {missing_topics}")
+    if not ANIMATION_DIR.is_dir():
+        fail("The course animations directory is missing")
+    if (NOTEBOOK_DIR / "part_c_project.ipynb").exists():
+        fail("Legacy part_c_project.ipynb remains; use the renamed report template")
 
 
 def validate_data():
@@ -174,6 +271,14 @@ def execute_notebooks():
                     if output.get("output_type") == "error":
                         fail(f"Execution error in {name}: {output.get('evalue')}")
 
+    for name in EXPECTED_ANIMATIONS:
+        path = ANIMATION_DIR / name
+        if not path.exists() or path.stat().st_size < 1_000:
+            fail(f"Notebook execution did not create a valid animation: {path}")
+        with Image.open(path) as gif:
+            if getattr(gif, "n_frames", 1) < 2:
+                fail(f"Generated animation has fewer than two frames: {path}")
+
 
 def compile_lecture():
     subprocess.run(
@@ -217,6 +322,7 @@ def main():
     if args.strip_outputs:
         strip_notebook_outputs()
     validate_package_version()
+    validate_support_files()
     validate_notebooks()
     validate_data()
     validate_lecture_files()

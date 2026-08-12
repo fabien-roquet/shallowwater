@@ -49,6 +49,11 @@ movies/
 !MT1562_python_lab_waves/data/
 !MT1562_python_lab_waves/data/*.npz
 
+# Keep the course animation directory, but not generated animations
+!MT1562_python_lab_waves/animations/
+MT1562_python_lab_waves/animations/*
+!MT1562_python_lab_waves/animations/.gitkeep
+
 # LaTeX build intermediates (compiled course PDFs are kept)
 *.aux
 *.fdb_latexmk

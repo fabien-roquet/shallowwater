@@ -81,7 +81,7 @@ def part_a_specs():
         markdown(r"""
         # Part A — Waves in a box
 
-        **Working time:** about 3 hours  
+        **Working time:** one 90-minute block
         **Work in groups of 2–4.** This notebook is guided and is not submitted.
 
         ## Learning goals
@@ -89,22 +89,23 @@ def part_a_specs():
         By the end you should be able to:
 
         - configure and run the shallow-water model;
-        - predict and measure the long-wave speed (c=\sqrt{gH});
+        - predict and measure the long-wave speed $c=\sqrt{gH}$;
         - identify an incident and reflected wave;
         - carry out a controlled comparison in which only one parameter changes.
 
-        Before beginning, write down one sentence describing what you expect a
-        localized elevation of the water surface to do in a closed basin.
+        Start with the animation below: watch first, then use the Hovmöller
+        diagram and a speed measurement to explain what you saw.
         """),
         answer(
             "**Prediction 1.** What will a localized elevation do after the model starts?",
-            "It will launch gravity waves. With the velocity chosen below, most of the signal travels eastward. It will reflect from the solid eastern wall and then travel westward.",
+            "It launches gravity waves that spread away from the initial bump. They reflect from the four solid walls and cross the basin again.",
         ),
         markdown(r"""
-        ## 1. Installation and imports
+        ## 1. Environment check and imports
 
-        The course uses the released PyPI package, not a source checkout. Install
-        the standard version in a terminal with:
+        Before the lab, follow `INSTALLATION.md` to create the `shallowwater-lab`
+        Miniconda environment and select it as the kernel in VS Code. The package
+        command used there is:
 
         ```text
         python -m pip install "shallowwater==0.1.4"
@@ -116,26 +117,97 @@ def part_a_specs():
         python -m pip install "shallowwater[numba]==0.1.4"
         ```
 
-        The first numba-backed run can pause while functions are compiled. Both
-        backends solve the same discrete equations.
+        Numba is optional. Its first run can pause while functions are compiled.
+        Ask for help now if the import cell fails; do not change model code to
+        repair an installation problem.
         """),
         code("""
+        from pathlib import Path
+
         import numpy as np
         import matplotlib.pyplot as plt
 
         from shallowwater import (
-            ModelParams, backend_info, compute_dt_cfl, depth_on_u,
-            make_grid, run_model, zero_forcing,
+            ModelParams, animate_eta, backend_info, compute_dt_cfl, depth_on_u,
+            make_grid, run_model, setup_initial_state, zero_forcing,
         )
 
         print(backend_info())
         """),
         markdown(r"""
-        ## 2. A controlled right-going pulse
+        ## 2. First run: watch a wave spread and reflect
 
-        The model variables are surface displacement (eta) and depth-averaged
-        velocities (u,v). The initial velocity below is chosen so most of the
-        disturbance travels toward increasing (x), which makes speed and
+        The initial state is a circular bump in surface elevation with zero
+        velocity. Run the next two cells. The animation appears directly below
+        the cell and is also saved as a GIF in the course `animations/` folder.
+
+        The helper deliberately shows only about 40 evenly spaced frames. You
+        can reuse it later with any model output that contains `eta`.
+        """),
+        code("""
+        def find_course_root():
+            candidates = (
+                Path.cwd(),
+                Path.cwd().parent,
+                Path.cwd() / "MT1562_python_lab_waves",
+            )
+            return next(path for path in candidates if (path / "notebooks").exists())
+
+
+        COURSE_ROOT = find_course_root()
+        ANIMATION_DIR = COURSE_ROOT / "animations"
+        ANIMATION_DIR.mkdir(exist_ok=True)
+
+
+        def animate_and_save(out, grid, filename, *, title, max_frames=42):
+            # Display a compact eta animation and save the same frames as a GIF.
+            frame_count = len(out["time"])
+            frames = np.unique(
+                np.linspace(0, frame_count - 1, min(max_frames, frame_count), dtype=int)
+            )
+            animation = animate_eta(
+                out, grid, frames=frames, interval=100, repeat=True,
+                title=title, contours=False, remove_mean=False,
+                figsize=(8.5, 3.6),
+            )
+            path = ANIMATION_DIR / filename
+            animation.save(str(path), fps=10, dpi=85)
+            print("Saved animation:", path.resolve())
+            return animation
+        """),
+        code("""
+        visual_grid = make_grid(96, 56, 1.2e6, 700e3)
+        visual_params = ModelParams(
+            H=500.0, g=9.81, f0=0.0, beta=0.0, r=0.0, linear=True,
+        )
+        visual_dt = compute_dt_cfl(visual_grid, visual_params, cfl=0.45)
+        visual_out = run_model(
+            tmax=5.0*3600, dt=visual_dt,
+            grid=visual_grid, params=visual_params,
+            forcing_fn=zero_forcing,
+            ic_fn=lambda g, p: setup_initial_state(
+                g, p, mode="gaussian_bump", amp=0.12, R=70e3,
+                x0=0.35*g.Lx, y0=0.55*g.Ly,
+            ),
+            save_every=4, out_vars=("eta",),
+        )
+
+        first_wave_animation = animate_and_save(
+            visual_out, visual_grid, "part_a_first_wave.gif",
+            title="Circular shallow-water wave: propagation and reflection",
+        )
+        first_wave_animation
+        """),
+        answer(
+            "**Observation 1.** Describe two things you saw before and after the first wall reflection.",
+            "Before reflection, the initially circular disturbance expands outward. The nearest walls are reached first; reflected wave fronts then reverse their normal direction and interfere with waves arriving from other walls.",
+        ),
+        markdown(r"""
+        ## 3. A controlled right-going pulse
+
+        The model variables are surface displacement $\eta$ and depth-averaged
+        velocities $(u,v)$. The initial velocity below is chosen so most of the
+        disturbance travels toward increasing $x$, which makes speed and
         reflection easier to measure.
 
         The model uses solid vertical walls. It does not include wave breaking,
@@ -186,18 +258,25 @@ def part_a_specs():
         fig.colorbar(image, ax=ax, label="surface displacement [m]")
         plt.show()
         """),
+        code("""
+        uniform_animation = animate_and_save(
+            out, grid, "part_a_uniform_400m.gif",
+            title="Right-going pulse and reflection: H = 400 m",
+        )
+        uniform_animation
+        """),
         answer(
-            "**Observation 1.** Identify the incident and reflected branches in the Hovmöller diagram. What happens at the eastern wall?",
+            "**Observation 2.** Identify the incident and reflected branches in the Hovmöller diagram. What happens at the eastern wall?",
             "The first diagonal branch moves toward increasing x and is incident on the eastern wall. After landfall, a branch with the opposite slope moves westward. Surface elevation reflects with the same sign at a rigid wall, while the normal velocity reverses.",
         ),
         markdown(r"""
-        ## 3. Predict and measure wave speed
+        ## 4. Predict and measure wave speed
 
         For a uniform-depth shallow-water wave,
 
-        [
+        $$
         c_{theory}=\sqrt{gH}.
-        ]
+        $$
 
         We measure the position of the maximum before the pulse reaches the wall.
         A grid introduces uncertainty of roughly one grid cell in position.
@@ -217,17 +296,17 @@ def part_a_specs():
         """),
         answer(
             "**Analysis 1.** Report the theoretical and measured speeds. Are they consistent given the grid spacing?",
-            "The theoretical speed for H=400 m is 62.64 m/s. The measured value should be close, normally within a few percent. A one-cell position uncertainty is 10 km, already about 1.8% of the distance travelled in 2.5 hours.",
+            "The theoretical speed for $H=400$ m is 62.64 m/s. The measured value should be close, normally within a few percent. A one-cell position uncertainty is 10 km, already about 1.8% of the distance travelled in 2.5 hours.",
         ),
         markdown(r"""
-        ## 4. Controlled depth experiment
+        ## 5. Controlled depth experiment
 
         Change only the depth from 400 m to 900 m. Predict the speed ratio before
         running. Keep the domain and initial disturbance unchanged.
         """),
         answer(
-            "**Prediction 2.** What is (c_{900}/c_{400})? Will reflection occur earlier or later?",
-            r"The ratio is \(\sqrt{900/400}=1.5\). The deeper case is faster, so it reaches and reflects from the eastern wall earlier.",
+            "**Prediction 2.** What is $c_{900}/c_{400}$? Will reflection occur earlier or later?",
+            r"The ratio is $\sqrt{900/400}=1.5$. The deeper case is faster, so it reaches and reflects from the eastern wall earlier.",
         ),
         code("""
         grid_deep, params_deep, out_deep = run_uniform_case(H=900.0, tmax_hours=5.5)
@@ -243,12 +322,19 @@ def part_a_specs():
         fig.colorbar(image, ax=ax, label="surface displacement [m]")
         plt.show()
         """),
+        code("""
+        deep_animation = animate_and_save(
+            out_deep, grid_deep, "part_a_uniform_900m.gif",
+            title="Right-going pulse and reflection: H = 900 m",
+        )
+        deep_animation
+        """),
         answer(
             "**Analysis 2.** Does the numerical comparison support the predicted depth scaling? Give evidence from the plot or a measurement.",
             "Yes. The incident branch is about 1.5 times steeper in x-versus-time coordinates, and the reflection occurs earlier. A measured speed should be close to 94.0 m/s, compared with 62.6 m/s in the baseline.",
         ),
         markdown(r"""
-        ## 5. Optional investigations
+        ## 6. Optional investigations
 
         If time permits, try one of these while changing only one primary factor:
 
@@ -274,7 +360,7 @@ def part_b_specs():
         markdown(r"""
         # Part B — A long wave over variable bathymetry
 
-        **Working time:** about 3 hours  
+        **Working time:** one 90-minute block
         **Work in groups of 2–4.** This notebook is guided and is not submitted.
 
         Part B investigates a tsunami-like long disturbance. It is not a hazard
@@ -286,8 +372,7 @@ def part_b_specs():
         - Relate local long-wave speed to local water depth.
         - Use virtual gauges to compare arrival time and surface elevation.
         - Conduct one controlled bathymetry experiment.
-        - Learn how to change wind forcing, bathymetry, domain size, and initial state.
-        - Prepare a focused proposal for Part C.
+        - Observe wind setup and the free response after wind shut-off.
         """),
         code("""
         from pathlib import Path
@@ -296,18 +381,43 @@ def part_b_specs():
         import matplotlib.pyplot as plt
 
         from shallowwater import (
-            ModelParams, backend_info, compute_dt_cfl, depth_on_u,
-            load_bathymetry, make_grid,
-            make_wind_forcing_from_file, run_model, shelf_bathymetry,
-            uniform_wind_forcing, zero_forcing,
+            ModelParams, animate_eta, backend_info, compute_dt_cfl, depth_on_u,
+            make_grid, run_model, shelf_bathymetry, uniform_wind_forcing,
+            zero_forcing,
         )
 
         print(backend_info())
-        DATA_DIR = next(
-            path for path in (Path("../data"), Path("data"), Path("MT1562_python_lab_waves/data"))
-            if path.exists()
-        )
-        print("Course data:", DATA_DIR.resolve())
+
+
+        def find_course_root():
+            candidates = (
+                Path.cwd(),
+                Path.cwd().parent,
+                Path.cwd() / "MT1562_python_lab_waves",
+            )
+            return next(path for path in candidates if (path / "notebooks").exists())
+
+
+        COURSE_ROOT = find_course_root()
+        ANIMATION_DIR = COURSE_ROOT / "animations"
+        ANIMATION_DIR.mkdir(exist_ok=True)
+        """),
+        code("""
+        def animate_and_save(out, grid, filename, *, title, max_frames=42):
+            # Display a compact eta animation and save the same frames as a GIF.
+            frame_count = len(out["time"])
+            frames = np.unique(
+                np.linspace(0, frame_count - 1, min(max_frames, frame_count), dtype=int)
+            )
+            animation = animate_eta(
+                out, grid, frames=frames, interval=100, repeat=True,
+                title=title, contours=False, remove_mean=False,
+                figsize=(8.5, 3.6),
+            )
+            path = ANIMATION_DIR / filename
+            animation.save(str(path), fps=10, dpi=85)
+            print("Saved animation:", path.resolve())
+            return animation
         """),
         markdown(r"""
         ## 1. Build a shelf and make a prediction
@@ -387,6 +497,33 @@ def part_b_specs():
         fig.colorbar(image, ax=ax, label="surface displacement [m]")
         plt.show()
         """),
+        code("""
+        shelf_animation = animate_and_save(
+            out_120, grid, "part_b_shelf_120m.gif",
+            title="Long wave crossing a shelf: coastal depth = 120 m",
+        )
+        shelf_animation
+        """),
+        markdown(r"""
+        ### A dispersive-looking wake — what is it?
+
+        The leading pulse develops a wavetrain as it crosses the variable bottom.
+        That is worth noticing: uniform-depth *linear shallow-water theory* is
+        non-dispersive because all long wavelengths have speed $c=\sqrt{gH}$.
+        Here the changing bathymetry scatters and partially reflects the wave, so
+        different spatial components interfere and the signal spreads. The
+        finite-difference grid can also add **numerical dispersion**, especially
+        for features represented by only a few cells. This model does not contain
+        the full finite-depth surface-wave dispersion relation from the lecture.
+
+        A useful diagnostic is to repeat the case with a broader initial pulse or
+        a finer grid. A wake that changes strongly with resolution is numerical;
+        a robust wake tied to the shelf is evidence of topographic scattering.
+        """),
+        answer(
+            "**Observation 1.** In the animation, where does the pulse first develop a visible wake, and which two mechanisms could contribute?",
+            "The wake becomes clearest as the pulse reaches and crosses the slope. Partial reflection and interference caused by the variable bathymetry contribute physically, while the discretized model may add numerical dispersion at short resolved scales.",
+        ),
         markdown(r"""
         ## 2. Virtual gauges
 
@@ -426,7 +563,7 @@ def part_b_specs():
         """),
         answer(
             "**Prediction 2.** Will the 300 m coastal case arrive earlier or later than the 120 m case? What do you expect for elevation?",
-            r"It should arrive earlier because \(\sqrt{gH}\) is larger over the coastal part of the path. The shallower case may show a larger surface elevation, but reflection and finite shelf geometry also influence the result, so this should be measured rather than assumed.",
+            r"It should arrive earlier because $\sqrt{gH}$ is larger over the coastal part of the path. The shallower case may show a larger surface elevation, but reflection and finite shelf geometry also influence the result, so this should be measured rather than assumed.",
         ),
         code("""
         params_300, out_300 = run_shelf_case(300.0)
@@ -450,61 +587,19 @@ def part_b_specs():
             index = int(np.argmax(signal))
             print(f"{label}: peak time={times[index]/3600:.2f} h, peak eta={signal[index]:.3f} m")
         """),
+        code("""
+        shelf_300_animation = animate_and_save(
+            out_300, grid, "part_b_shelf_300m.gif",
+            title="Controlled comparison: coastal depth = 300 m",
+        )
+        shelf_300_animation
+        """),
         answer(
             "**Analysis 2.** Summarize the controlled comparison. Why must it not be interpreted as a prediction of coastal danger?",
             "The 300 m case reaches the coastal gauge earlier, consistent with its larger local wave speed. The peak elevations differ because depth changes shoaling and reflection. The comparison is not a hazard prediction because the model has no dry land, run-up, breaking, inundation, buildings, or realistic source/bathymetry.",
         ),
         markdown(r"""
-        ## 4. Bathymetry supplied as a file
-
-        The package accepts an in-memory depth array directly. Version 0.1.4 also
-        provides a validated loader for `.npy`, `.npz`, `.csv`, and `.txt` maps.
-        Maps must match the grid exactly, use positive depth in metres, and use
-        array order `(y, x)`. No interpolation or land mask is applied.
-        """),
-        code("""
-        H_file = load_bathymetry(DATA_DIR / "example_bathymetry.npz", grid)
-        print("shape:", H_file.shape, "minimum depth:", H_file.min(), "maximum depth:", H_file.max())
-
-        fig, ax = plt.subplots(figsize=(8, 3.5))
-        image = ax.imshow(
-            H_file, origin="lower", extent=[0, grid.Lx/1e3, 0, grid.Ly/1e3],
-            aspect="auto", cmap="Blues"
-        )
-        ax.set(xlabel="x [km]", ylabel="y [km]", title="Bathymetry loaded from file")
-        fig.colorbar(image, ax=ax, label="depth [m]")
-        plt.show()
-        """),
-        answer(
-            "**Check.** Describe one difference between the analytic shelf and the file-loaded map.",
-            "The analytic shelf varies only with x, whereas the supplied file includes a two-dimensional ridge/channel pattern. Both remain fully wet and have exactly the grid's cell-centre shape.",
-        ),
-        markdown(r"""
-        ## 5. Wind forcing supplied as a file
-
-        A forcing file contains static cell-centred wind-stress maps `tau_x` and
-        `tau_y` in N m(^{-2}). The file is read once and converted to a forcing
-        function. A separate time envelope controls ramp-up or shut-off.
-        """),
-        code("""
-        wind_from_file = make_wind_forcing_from_file(
-            DATA_DIR / "example_wind_forcing.npz",
-            grid,
-            envelope=lambda t: min(1.0, t / (2 * 3600)),
-        )
-        taux, tauy, _ = wind_from_file(2 * 3600, grid, params_120)
-
-        fig, axes = plt.subplots(1, 2, figsize=(10, 3.4), constrained_layout=True)
-        for ax, field, title in zip(
-            axes, (taux[:, :-1], tauy[:-1, :]), ("eastward stress", "northward stress")
-        ):
-            image = ax.imshow(field, origin="lower", aspect="auto", cmap="RdBu_r")
-            ax.set_title(title)
-            fig.colorbar(image, ax=ax, label="N m$^{-2}$")
-        plt.show()
-        """),
-        markdown(r"""
-        ### Short wind-forced demonstration
+        ## 4. Short wind-forced demonstration
 
         Here the model starts from rest. An eastward wind ramps up, is switched
         off after six hours, and pushes water toward the eastern wall.
@@ -549,65 +644,364 @@ def part_b_specs():
         ax.grid(alpha=0.25)
         plt.show()
         """),
-        answer(
-            "**Observation 3.** Which coast gains water under eastward wind? What happens after the wind stops?",
-            "Water piles up toward the eastern wall and is lowered toward the west. After shut-off, the displaced surface is no longer in equilibrium and launches free basin oscillations.",
-        ),
-        markdown(r"""
-        ## 6. Controls available in Part C
-
-        You may investigate one main factor:
-
-        | Category | Examples of controls |
-        |---|---|
-        | Wind | amplitude, direction, duration, spatial map |
-        | Bottom | uniform depth, shelf depth/width, ridge, file map, damping |
-        | Domain | `Lx`, `Ly`, aspect ratio, resolution |
-        | Initial state | amplitude, radius, position, circular or cross-basin shape |
-        | Optional | forcing period or rotation |
-
-        Changing domain size while keeping `Nx` fixed also changes `dx`; always
-        report both. Change one primary factor unless the instructor approves a
-        two-factor experiment.
-
-        ## 7. Part C proposal
+        code("""
+        wind_animation = animate_and_save(
+            wind_out, grid, "part_b_wind_setup_release.gif",
+            title="Wind setup followed by a free basin response",
+        )
+        wind_animation
         """),
         answer(
-            "**Project question.** State a question that can be answered with a baseline and two controlled variations.",
-            "Example: How does the duration of an eastward wind event affect maximum surface setup at the eastern wall?",
-        ),
-        answer(
-            "**Prediction and mechanism.** What do you expect, and which physical argument supports it?",
-            "Example: Longer wind duration should initially increase eastern setup because stress accelerates water toward the wall, although free oscillations and damping may prevent a simple proportional response.",
-        ),
-        answer(
-            "**Experimental design.** List the baseline, two variations, the primary parameter, and the diagnostic you will use.",
-            "Example: use identical 3 h, 6 h, and 9 h eastward wind events; keep grid, depth, stress, damping, and initial rest state fixed; compare maximum eta in the final four eastern columns and the post-shutoff gauge record.",
+            "**Observation 2.** Which coast gains water under eastward wind? What happens after the wind stops?",
+            "Water piles up toward the eastern wall and is lowered toward the west. After shut-off, the displaced surface is no longer in equilibrium and launches free basin oscillations.",
         ),
     ]
 
 
-def part_c_specs():
+def part_c_project_description_specs():
     return [
         markdown(r"""
-        # Part C — Group investigation
+        # Part C — Project description and toolbox
+
+        **Demonstration time:** about 45 minutes
+
+        This notebook is an instructor-led tour of the controls available for
+        the group project. It is a reference, not a worksheet and not a report
+        template. The two demonstrations show how an input map becomes a model
+        experiment and how to keep the mapped information visible in an
+        animation.
+
+        The project itself should still be a controlled experiment: start from
+        one baseline, vary one primary factor, and support the conclusion with a
+        quantitative diagnostic rather than an animation alone.
+        """),
+        markdown(r"""
+        ## 1. From a physical question to a numerical experiment
+
+        A useful project has four connected pieces:
+
+        1. a focused question and a prediction based on a mechanism;
+        2. a baseline configuration that runs successfully;
+        3. one or, if time permits, two controlled variations of one parameter;
+        4. a diagnostic such as speed, arrival time, amplitude, period, or
+           reflection time.
+
+        The model is a fully wet, one-layer shallow-water model. A coastline is
+        a rigid wall; there is no run-up, inundation, breaking, or wetting and
+        drying. File-backed fields must already match the model grid.
+        """),
+        markdown(r"""
+        ## 2. Controls available for Part C
+
+        | Category | Examples of controls |
+        |---|---|
+        | Wind | stress amplitude, direction, duration, spatial map |
+        | Bottom | uniform depth, shelf depth/width, ridge, file map |
+        | Domain | `Lx`, `Ly`, aspect ratio, `Nx`, `Ny` |
+        | Initial state | amplitude, radius, position, circular or cross-basin shape |
+        | Rotation | constant Coriolis parameter `f` |
+        | Dissipation | Rayleigh damping timescale |
+
+        Domain size and resolution are separate controls. Changing `Lx` while
+        keeping `Nx` fixed also changes `dx`, so both must be reported. Rotation
+        matters only if the integration time is a meaningful fraction of the
+        inertial period $2\pi/|f|$ or the domain is comparable to the deformation
+        radius $\sqrt{gH}/|f|$.
+        """),
+        markdown(r"""
+        ## 3. Imports and reusable display helper
+
+        `animate_with_overlay(...)` uses the same `animate_eta` function as Parts
+        A and B. An optional drawing function adds persistent contours or arrows
+        before the GIF is saved. This is useful for keeping the field that causes
+        the response visible behind the evolving surface elevation $\eta$.
+        """),
+        code("""
+        from pathlib import Path
+
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        from shallowwater import (
+            ModelParams, animate_eta, backend_info, compute_dt_cfl, depth_on_u,
+            load_bathymetry, make_grid, make_wind_forcing_from_file,
+            run_model, zero_forcing,
+        )
+
+        print(backend_info())
+
+
+        def find_course_root():
+            candidates = (
+                Path.cwd(),
+                Path.cwd().parent,
+                Path.cwd() / "MT1562_python_lab_waves",
+            )
+            return next(path for path in candidates if (path / "notebooks").exists())
+
+
+        COURSE_ROOT = find_course_root()
+        DATA_DIR = COURSE_ROOT / "data"
+        ANIMATION_DIR = COURSE_ROOT / "animations"
+        ANIMATION_DIR.mkdir(exist_ok=True)
+        print("Course data:", DATA_DIR.resolve())
+        """),
+        code("""
+        def animate_with_overlay(
+            out, grid, filename, *, title, draw_overlay=None, max_frames=42,
+        ):
+            frame_count = len(out["time"])
+            frames = np.unique(
+                np.linspace(0, frame_count - 1, min(max_frames, frame_count), dtype=int)
+            )
+            animation = animate_eta(
+                out, grid, frames=frames, interval=100, repeat=True,
+                title=title, contours=False, remove_mean=False,
+                figsize=(9.0, 3.8),
+            )
+            if draw_overlay is not None:
+                draw_overlay(animation.figure.axes[0])
+            path = ANIMATION_DIR / filename
+            animation.save(str(path), fps=10, dpi=90)
+            print("Saved animation:", path.resolve())
+            return animation
+
+
+        def cross_basin_pulse(
+            grid, params, *, amplitude=0.10, radius=80e3, x0=350e3,
+        ):
+            eta_line = amplitude * np.exp(-((grid.x_c - x0) / radius) ** 2)
+            eta = np.repeat(eta_line[None, :], grid.Ny, axis=0)
+            H_u = depth_on_u(grid, params.H)
+            eta_u = amplitude * np.exp(-((grid.x_u - x0) / radius) ** 2)
+            u = np.repeat(eta_u[None, :], grid.Ny, axis=0) * np.sqrt(params.g/H_u)
+            v = np.zeros((grid.Ny + 1, grid.Nx))
+            return eta, u, v
+
+
+        def rest_state(grid, params):
+            return (
+                np.zeros((grid.Ny, grid.Nx)),
+                np.zeros((grid.Ny, grid.Nx + 1)),
+                np.zeros((grid.Ny + 1, grid.Nx)),
+            )
+        """),
+        markdown(r"""
+        ## 4. Bathymetry supplied as a file
+
+        The bathymetry loader accepts `.npy`, `.npz`, `.csv`, and `.txt` arrays.
+        Depth must be positive, finite, measured in metres, and have exact shape
+        `(Ny, Nx)`. The first index is south-to-north $y$ and the second is
+        west-to-east $x$. The loader does not interpolate, reproject, or create a
+        land mask.
+
+        Here the supplied two-dimensional shelf-and-ridge map becomes
+        `ModelParams.H`. Contour lines keep the bottom geometry visible while the
+        surface wave propagates over it.
+        """),
+        code("""
+        Nx, Ny = 160, 24
+        Lx, Ly = 2.4e6, 360e3
+        map_grid = make_grid(Nx, Ny, Lx, Ly)
+        H_map = load_bathymetry(DATA_DIR / "example_bathymetry.npz", map_grid)
+        print(
+            "bathymetry shape:", H_map.shape,
+            "depth range:", f"{H_map.min():.0f}–{H_map.max():.0f} m",
+        )
+
+        bathy_levels = np.linspace(H_map.min(), H_map.max(), 7)[1:-1]
+        fig, ax = plt.subplots(figsize=(9, 3.4))
+        field = ax.contourf(
+            map_grid.x_c/1e3, map_grid.y_c/1e3, H_map,
+            levels=18, cmap="Blues",
+        )
+        lines = ax.contour(
+            map_grid.x_c/1e3, map_grid.y_c/1e3, H_map,
+            levels=bathy_levels, colors="0.2", linewidths=0.7,
+        )
+        ax.clabel(lines, fmt="%.0f m", fontsize=7)
+        ax.set(xlabel="x [km]", ylabel="y [km]", title="Bathymetry input map")
+        fig.colorbar(field, ax=ax, label="depth [m]")
+        plt.show()
+        """),
+        code("""
+        bathy_params = ModelParams(
+            H=H_map, g=9.81, f0=0.0, beta=0.0, r=0.0, linear=True,
+        )
+        bathy_dt = compute_dt_cfl(map_grid, bathy_params, cfl=0.42)
+        bathy_out = run_model(
+            tmax=7*3600, dt=bathy_dt,
+            grid=map_grid, params=bathy_params,
+            forcing_fn=zero_forcing,
+            ic_fn=lambda g, p: cross_basin_pulse(g, p),
+            save_every=5, out_vars=("eta",),
+        )
+
+
+        def draw_bathymetry(ax):
+            contours = ax.contour(
+                map_grid.x_c, map_grid.y_c, H_map,
+                levels=bathy_levels, colors="0.15", linewidths=0.65,
+                alpha=0.75,
+            )
+            ax.clabel(contours, fmt="%.0f m", fontsize=6)
+
+
+        bathymetry_animation = animate_with_overlay(
+            bathy_out, map_grid, "part_c_toolbox_bathymetry.gif",
+            title="Wave over file-backed bathymetry",
+            draw_overlay=draw_bathymetry,
+        )
+        bathymetry_animation
+        """),
+        markdown(r"""
+        ## 5. Wind forcing supplied as a file
+
+        The forcing file stores cell-centred stress components `tau_x` and
+        `tau_y` in $\mathrm{N\,m^{-2}}$. The loader reads the file once, places
+        the stresses on the staggered velocity grid, and returns a normal model
+        forcing function. A separate envelope can vary the amplitude in time.
+
+        The model is forced by stress rather than wind velocity. For display
+        only, the code estimates a wind speed from
+
+        $$
+        |\boldsymbol{\tau}|=\rho_{air} C_D U_{10}^2,
+        $$
+
+        using constant air density and drag coefficient. Wind-speed contours and
+        small direction arrows remain visible while the surface responds.
+        """),
+        code("""
+        with np.load(DATA_DIR / "example_wind_forcing.npz", allow_pickle=False) as data:
+            tau_x_map = np.asarray(data["tau_x"])
+            tau_y_map = np.asarray(data["tau_y"])
+
+        stress_magnitude = np.hypot(tau_x_map, tau_y_map)
+        rho_air, drag_coefficient = 1.225, 1.3e-3
+        wind_speed = np.sqrt(stress_magnitude / (rho_air * drag_coefficient))
+        direction_x = np.divide(
+            tau_x_map, stress_magnitude,
+            out=np.zeros_like(tau_x_map), where=stress_magnitude > 0,
+        )
+        direction_y = np.divide(
+            tau_y_map, stress_magnitude,
+            out=np.zeros_like(tau_y_map), where=stress_magnitude > 0,
+        )
+
+        wind_levels = np.linspace(1.0, max(2.0, float(wind_speed.max())), 6)
+        arrow_slice = (slice(1, None, 3), slice(4, None, 12))
+
+        fig, ax = plt.subplots(figsize=(9, 3.4))
+        speed_field = ax.contourf(
+            map_grid.x_c/1e3, map_grid.y_c/1e3, wind_speed,
+            levels=18, cmap="YlGnBu",
+        )
+        speed_lines = ax.contour(
+            map_grid.x_c/1e3, map_grid.y_c/1e3, wind_speed,
+            levels=wind_levels, colors="0.2", linewidths=0.65,
+        )
+        ax.clabel(speed_lines, fmt="%.1f m/s", fontsize=7)
+        ax.quiver(
+            map_grid.x_c[arrow_slice[1]]/1e3,
+            map_grid.y_c[arrow_slice[0]]/1e3,
+            direction_x[arrow_slice], direction_y[arrow_slice],
+            color="0.15", scale=28, width=0.0022, pivot="middle",
+        )
+        ax.set(xlabel="x [km]", ylabel="y [km]", title="Mapped wind pattern")
+        fig.colorbar(speed_field, ax=ax, label="estimated wind speed [m/s]")
+        plt.show()
+        """),
+        code("""
+        wind_map_forcing = make_wind_forcing_from_file(
+            DATA_DIR / "example_wind_forcing.npz",
+            map_grid,
+            envelope=lambda t: 1.0,
+        )
+        wind_map_params = ModelParams(
+            H=400.0, g=9.81, f0=0.0, beta=0.0,
+            r=1/(2*86400), linear=True,
+        )
+        wind_map_dt = compute_dt_cfl(map_grid, wind_map_params, cfl=0.42)
+        wind_map_out = run_model(
+            tmax=8*3600, dt=wind_map_dt,
+            grid=map_grid, params=wind_map_params,
+            forcing_fn=wind_map_forcing, ic_fn=rest_state,
+            save_every=8, out_vars=("eta",),
+        )
+
+
+        def draw_wind_pattern(ax):
+            contours = ax.contour(
+                map_grid.x_c, map_grid.y_c, wind_speed,
+                levels=wind_levels, colors="0.15", linewidths=0.65,
+                alpha=0.75,
+            )
+            ax.clabel(contours, fmt="%.1f m/s", fontsize=6)
+            ax.quiver(
+                map_grid.x_c[arrow_slice[1]],
+                map_grid.y_c[arrow_slice[0]],
+                direction_x[arrow_slice], direction_y[arrow_slice],
+                color="0.12", scale=28, width=0.0022, pivot="middle",
+            )
+
+
+        wind_map_animation = animate_with_overlay(
+            wind_map_out, map_grid, "part_c_toolbox_wind.gif",
+            title="Surface response to mapped wind forcing",
+            draw_overlay=draw_wind_pattern,
+        )
+        wind_map_animation
+        """),
+        markdown(r"""
+        ## 6. Turning the toolbox into a project
+
+        The demonstrations above are starting points, not prescribed projects.
+        A group might change one map amplitude, shelf depth, forcing duration,
+        domain dimension, initial-state scale, or Coriolis parameter. A compact
+        design looks like this:
+
+        | Element | Example |
+        |---|---|
+        | Question | How does eastward-wind duration affect eastern-wall setup? |
+        | Prediction | Longer forcing initially produces larger setup. |
+        | Baseline | 6-hour wind event; all other controls fixed. |
+        | Variations | Identical 3-hour and 9-hour events. |
+        | Diagnostic | Maximum mean $\eta$ in the four easternmost cells. |
+        | Limitation | A rigid wet wall is not a beach or inundation model. |
+
+        The report notebook already contains a reusable `run_case(...)`
+        function and the required report headings. Groups should copy only the
+        toolbox code relevant to their question, keep the report readable, and
+        submit the executed report notebook—not this demonstration notebook.
+        """),
+    ]
+
+
+def part_c_report_specs():
+    return [
+        markdown(r"""
+        # Part C — Project report template
 
         **This is the notebook your group submits.** Rename it with your group
-        identifier. Keep the numerical outputs that support your conclusions,
-        but do not embed large GIF or video files.
+        identifier. This is a **short exploratory project**, not a comprehensive
+        research study. Aim for two or three well-chosen model cases and one
+        result that you can explain clearly.
 
         ## Assessment
 
-        | Criterion | Weight |
-        |---|---:|
-        | Focused question, prediction, and controlled design | 25% |
-        | Appropriate quantitative evidence | 30% |
-        | Physical interpretation | 25% |
-        | Limitations and reproducibility | 10% |
-        | Clear notebook and contribution statement | 10% |
+        The project is graded **G (Godkänt)** or **U (Underkänt)**. There are no
+        points or weighted criteria. A passing report adequately addresses:
 
-        Use one main independent variable. A two-factor study requires instructor
-        approval. Your notebook must run from top to bottom before submission.
+        - a focused question, prediction, and controlled design;
+        - appropriate quantitative evidence;
+        - a physical interpretation of the main result;
+        - awareness of relevant limitations and enough information to reproduce
+          the cases;
+        - a clear notebook and contribution statement.
+
+        Keep the scope small. Use one main independent variable, and make sure
+        the submitted notebook runs from top to bottom.
         """),
         markdown("""
         ## Group and research question
@@ -615,8 +1009,6 @@ def part_c_specs():
         **Group members:**  
 
         **Research question:**  
-
-        **Why this question matters for long surface waves:**  
         """),
         markdown("""
         ## Prediction
@@ -656,7 +1048,8 @@ def part_c_specs():
         scalar, an `(Ny, Nx)` array, or a function that creates such an array from
         the grid. Initial-state choices are `cross_pulse`, `gaussian`, and `rest`.
         Uniform wind is controlled by `wind_x`, `wind_y`, `wind_ramp_hours`, and
-        `wind_off_hours`.
+        `wind_off_hours`. Rotation is controlled by the constant Coriolis
+        parameter `f` in $\mathrm{s^{-1}}$; use `f=0.0` for no rotation.
 
         If you use a custom external file, the submitted notebook must explain
         how it can be reproduced. Prefer generating arrays in this notebook or
@@ -692,9 +1085,10 @@ def part_c_specs():
             label,
             *,
             Nx=120, Ny=24, Lx=1.2e6, Ly=240e3,
-            depth=400.0, f0=0.0, damping=0.0,
+            depth=400.0, f=0.0, damping=0.0,
             initial_kind="cross_pulse", initial_amplitude=0.08,
             initial_radius=60e3, initial_x_fraction=0.25,
+            initial_y_fraction=0.50,
             wind_x=0.0, wind_y=0.0, wind_ramp_hours=1.0,
             wind_off_hours=None, wind_file=None,
             tmax_hours=5.0,
@@ -704,7 +1098,7 @@ def part_c_specs():
             if isinstance(H, (str, Path)):
                 H = load_bathymetry(H, grid)
             params = ModelParams(
-                H=H, g=9.81, f0=f0, beta=0.0,
+                H=H, g=9.81, f0=f, beta=0.0,
                 r=damping, linear=True,
             )
             dt = compute_dt_cfl(grid, params, cfl=0.42)
@@ -724,6 +1118,7 @@ def part_c_specs():
             initial = lambda g, p: make_initial_state(
                 g, p, kind=initial_kind, amplitude=initial_amplitude,
                 radius=initial_radius, x_fraction=initial_x_fraction,
+                y_fraction=initial_y_fraction,
             )
             out = run_model(
                 tmax=tmax_hours*3600, dt=dt, grid=grid, params=params,
@@ -732,117 +1127,34 @@ def part_c_specs():
             )
             print(
                 f"{label}: Nx={Nx}, Ny={Ny}, Lx={Lx/1e3:.0f} km, "
-                f"dx={grid.dx/1e3:.1f} km, dt={dt:.1f} s, frames={len(out['time'])}"
+                f"dx={grid.dx/1e3:.1f} km, dt={dt:.1f} s, "
+                f"f={f:.2e} s^-1, frames={len(out['time'])}"
             )
             return {"label": label, "grid": grid, "params": params, "out": out}
         """),
         markdown("""
-        ## Baseline configuration
+        ## Experiment
 
-        Describe the baseline and justify the domain, depth, initial state,
-        forcing, duration, and resolution. The default below runs successfully;
-        replace it with the baseline appropriate to your question.
+        Run one baseline and at least one controlled variation. Change one main
+        parameter and keep the other relevant settings fixed. Add your own code
+        cells below; the choice of plots and diagnostic is part of the project.
 
-        **Baseline justification:**  
-        """),
-        code("""
-        baseline = run_case(
-            "baseline",
-            depth=400.0,
-            initial_kind="cross_pulse",
-            tmax_hours=5.0,
-        )
+        Briefly state which parameter you changed and which controls you kept
+        fixed.
         """),
         markdown("""
-        ## Controlled variations
+        ## Results and interpretation
 
-        Add at least two cases. Change one primary parameter while keeping the
-        remaining controls fixed. Examples include wind duration, shelf width,
-        domain length, or initial radius.
-
-        **Independent variable:**  
-
-        **Values tested:**  
-
-        **Controls held fixed:**  
-        """),
-        code("""
-        # Replace these examples with cases that answer your research question.
-        # variation_1 = run_case("variation 1", depth=...)
-        # variation_2 = run_case("variation 2", depth=...)
-        cases = [baseline]  # add variation_1 and variation_2
-        """),
-        markdown("""
-        ## Diagnostics
-
-        Use at least one quantitative diagnostic, not only an animation. Suitable
-        choices include arrival time, measured propagation speed, maximum surface
-        elevation at a stated location, reflection time, oscillation period, or
-        a comparison with a theoretical scaling.
-        """),
-        code("""
-        def plot_hovmoller(case):
-            grid, out = case["grid"], case["out"]
-            eta_line = np.asarray(out["eta"]).mean(axis=1)
-            times = np.asarray(out["time"])
-            fig, ax = plt.subplots(figsize=(8.5, 3.8))
-            image = ax.pcolormesh(
-                grid.x_c/1e3, times/3600, eta_line,
-                shading="auto", cmap="RdBu_r",
-            )
-            ax.set(xlabel="x [km]", ylabel="time [hours]", title=case["label"])
-            fig.colorbar(image, ax=ax, label="surface displacement [m]")
-            plt.show()
-
-
-        for case in cases:
-            plot_hovmoller(case)
-        """),
-        code("""
-        # Add your quantitative measurement and comparison table here.
-        summary = []
-        for case in cases:
-            eta = np.asarray(case["out"]["eta"])
-            summary.append((case["label"], float(np.max(np.abs(eta)))))
-
-        print("case | maximum absolute surface displacement [m]")
-        for label, value in summary:
-            print(f"{label:20s} | {value:.4f}")
-        """),
-        markdown("""
-        ## Results
-
-        Present the evidence needed to answer the question. Every figure needs
-        labelled axes with units, a useful caption or nearby explanation, and a
-        statement identifying what should be noticed.
-
-        **Results and figure interpretation:**  
-        """),
-        markdown(r"""
-        ## Comparison with theory
-
-        Compare at least one result with a relevant prediction or scaling, such
-        as (c=\sqrt{gH}), a crossing time (L/c), a basin period (2L/c),
-        linear amplitude scaling, or a force/damping timescale.
-
-        **Theoretical comparison, including units and discrepancy:**  
-        """),
-        markdown("""
-        ## Limitations
-
-        Discuss at least two limitations relevant to your particular conclusion.
-        Distinguish limitations of the physical model from numerical resolution
-        or experimental-design limitations.
-
-        **Limitations:**  
+        Show the evidence needed to answer the question. Include at least one
+        quantitative result—not only an animation—and explain the main physical
+        pattern you observe. Label figures with units. Briefly mention the single
+        most relevant model, resolution, or experimental caveat for your result.
         """),
         markdown("""
         ## Conclusion
 
-        Answer the research question directly in a short paragraph. State whether
-        the prediction was supported and cite the main quantitative evidence.
-
-        **Conclusion:**  
+        Answer the research question directly in a short paragraph. State
+        whether the prediction was supported and cite the main numerical result.
         """),
         markdown("""
         ## Contributions and submission check
@@ -852,11 +1164,9 @@ def part_c_specs():
         Before submission:
 
         - [ ] All group members are named.
-        - [ ] The notebook uses no unexplained absolute file paths.
-        - [ ] Required figures and numerical outputs are visible.
-        - [ ] Large animations have been removed.
+        - [ ] The evidence needed for the conclusion is visible.
         - [ ] The kernel was restarted and all cells ran in order without error.
-        - [ ] The filename contains the group identifier.
+        - [ ] The notebook is reproducible and contains no unexplained local path.
         """),
     ]
 
@@ -900,7 +1210,14 @@ def main():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     _write_pair("part_a_waves", "a", part_a_specs())
     _write_pair("part_b_bathymetry", "b", part_b_specs())
-    nbf.write(_render(part_c_specs(), solution=False, prefix="c"), NOTEBOOK_DIR / "part_c_project.ipynb")
+    nbf.write(
+        _render(part_c_project_description_specs(), solution=False, prefix="ct"),
+        NOTEBOOK_DIR / "part_c_project_description.ipynb",
+    )
+    nbf.write(
+        _render(part_c_report_specs(), solution=False, prefix="cr"),
+        NOTEBOOK_DIR / "part_c_project_report_template.ipynb",
+    )
     build_example_data()
     print(f"Wrote notebooks to {NOTEBOOK_DIR}")
     print(f"Wrote example data to {DATA_DIR}")

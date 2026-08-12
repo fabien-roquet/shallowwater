@@ -4,7 +4,7 @@ This document is the implementation backlog for the two guided laboratories and
 the final group project. Work should proceed in the order below. A stage is not
 complete until its validation checklist passes.
 
-## Implementation status (11 August 2026)
+## Implementation status (12 August 2026)
 
 All locally implementable items are complete and checked below. The remaining
 unchecked items are release or teaching-event gates that cannot be completed in
@@ -12,22 +12,27 @@ this workspace:
 
 - publish version 0.1.4 to PyPI and repeat clean installs from PyPI;
 - run the configured CI jobs on the hosted Linux runner;
-- perform the live two-hour lecture rehearsal;
+- perform the live 90-minute lecture rehearsal with the added observation material;
 - validate the student bundle on a Windows machine;
 - freeze/tag the final release archive and record its final git commit.
 
 Local validation used the built 0.1.4 wheel, both NumPy and numba backends, all
-five generated notebooks, the compiled lecture, and all twelve legacy scripts.
+six generated notebooks, eight generated GIFs, the compiled lecture, and all
+twelve legacy scripts.
 
 ## Agreed course structure
 
-- One two-hour lecture on progressive surface waves and the shallow-water limit.
-- Part A: guided first model experiments (installation, propagation, speed,
-  reflection, and a small controlled change).
-- Part B: guided variable-depth experiment followed by an introduction to the
-  experimental controls available for the project.
-- Part C: group-project notebook and supervised project time.
-- Three separate student notebooks, one for each part.
+- One 90-minute lecture on progressive surface waves, the shallow-water limit,
+  and observations of surface waves.
+- One 90-minute Part A block: environment check, animated propagation, speed,
+  reflection, and a small controlled change.
+- One 90-minute Part B block: animated variable-depth experiment followed by an
+  animated uniform-wind setup and release.
+- A 45-minute Part C project-description/toolbox demonstration at the start of
+  the two 90-minute Part C blocks.
+- A separate Part C report template for the group project.
+- Four student-facing notebooks: Parts A and B, the Part C toolbox demonstration,
+  and the Part C report template.
 - Instructor solutions for Parts A and B only.
 - Students submit only their completed Part C notebook.
 - Course installation instructions use PyPI and `pip`, not `uv`.
@@ -39,7 +44,9 @@ five generated notebooks, the compiled lecture, and all twelve legacy scripts.
 ```text
 MT1562_python_lab_waves/
   README.md
+  INSTALLATION.md
   TODO.md
+  animations/
   lecture/
     shallow_water_waves_lecture.tex
     shallow_water_waves_lecture.pdf
@@ -48,7 +55,8 @@ MT1562_python_lab_waves/
     part_a_waves_solutions.ipynb
     part_b_bathymetry_student.ipynb
     part_b_bathymetry_solutions.ipynb
-    part_c_project.ipynb
+    part_c_project_description.ipynb
+    part_c_project_report_template.ipynb
   data/
     example_bathymetry.npz
     example_wind_forcing.npz
@@ -93,8 +101,8 @@ notebooks; selected outputs may be retained in instructor solutions if useful.
 - [x] Decide whether the lecture PDF and solution notebooks are tracked in git or
       produced only as release artifacts.
 - [x] Set a target runtime for each notebook. Recommended limits without numba:
-      Part A <= 5 minutes, Part B <= 8 minutes, and the default Part C baseline
-      <= 3 minutes.
+      Part A <= 5 minutes, Part B <= 8 minutes, and each default-sized Part C
+      case <= 3 minutes.
 - [x] Record current baseline results for representative uniform-depth,
       variable-depth, and wind-forced cases before changing model code.
 - [x] Run and record the status of all existing scripts before model changes.
@@ -204,7 +212,8 @@ solver and existing bathymetry paths should remain unchanged.
 - [x] Export the loader through `shallowwater.__init__` without changing existing
       exports.
 - [x] Add one small synthetic example map to the course `data/` directory.
-- [x] Demonstrate both an analytic shelf and a file-loaded map in Part B.
+- [x] Demonstrate an analytic shelf in Part B and a file-loaded map in the Part C
+      project-description toolbox.
 
 ### Tests
 
@@ -249,7 +258,8 @@ and wrapped in a callable; no disk access should occur inside the timestep loop.
 - [x] Return zero `Q_eta` and document that pressure/mass forcing is not implied.
 - [x] Export the helper without altering existing forcing functions.
 - [x] Add one small synthetic wind map to the course `data/` directory.
-- [x] Demonstrate analytic and file-based wind patterns in the Part B toolbox.
+- [x] Demonstrate analytic wind in Part B and file-based wind in the Part C
+      project-description toolbox.
 
 ### Tests
 
@@ -360,17 +370,11 @@ and wrapped in a callable; no disk access should occur inside the timestep loop.
 - [x] Explicitly state that all cells remain wet and that breaking, wetting and
       drying, and coastal inundation are absent.
 
-### Project toolbox
+### Short wind demonstration and hand-off
 
-- [x] Show, without requiring a full investigation, how to change:
-      wind amplitude/direction/duration, analytic or file-based bathymetry,
-      `Lx`/`Ly` and grid resolution, initial amplitude/radius/location/shape, and
-      optional damping or rotation.
-- [x] Include concise example plots for an initial-state change and a wind-forced
-      case.
-- [x] Demonstrate the bathymetry and forcing input-file helpers.
-- [x] Include a Part C proposal form: question, prediction, baseline, primary
-      parameter, diagnostic, and planned runs.
+- [x] Retain a concise uniform-wind setup and release case as section 4.
+- [x] Move file-backed bathymetry, mapped wind, project controls, and project
+      design guidance out of Part B into a separate Part C toolbox notebook.
 
 ### Student/solution production and tests
 
@@ -392,18 +396,18 @@ and organized as a scientific report rather than another tutorial.
       initial state, damping, periodic forcing, and optional rotation.
 - [x] Require one main independent variable; allow a two-factor interaction only
       with instructor approval.
-- [x] Provide sections for question, prediction, model configuration, baseline,
-      two or more controlled variations, diagnostics, interpretation,
-      limitations, conclusion, and member contributions.
+- [x] Provide concise sections for question, prediction, experiment, results and
+      interpretation, conclusion, and member contributions.
 - [x] Provide a compact parameter table and a reproducible random-seed field if
       any project could use randomness.
-- [x] Include a default baseline that executes successfully before students edit
-      it.
+- [x] Provide a tested default configuration through `run_case(...)` without
+      automatically running or prescribing the students' baseline.
 - [x] Include reminders to restart the kernel and run all cells before submission.
 - [x] Require outputs needed for assessment to remain visible in the submitted
       notebook while avoiding oversized embedded animations.
-- [x] Add a short assessment rubric aligned with scientific reasoning,
-      quantitative evidence, model criticism, clarity, and reproducibility.
+- [x] State the G/U assessment scheme and concise passing criteria for scientific
+      reasoning, quantitative evidence, interpretation, clarity, and
+      reproducibility without inventing weights or points.
 
 ### Notebook-only submission and external data
 
@@ -428,12 +432,12 @@ and organized as a scientific report rather than another tutorial.
 
 ---
 
-## Stage 9: two-hour Beamer lecture
+## Stage 9: Beamer lecture
 
 - [x] Replace the existing installation-focused slide deck with a lecture deck
       built for the agreed laboratory sequence.
-- [x] Target approximately 20-24 main slides plus exercise/answer overlays and a
-      short break.
+- [x] Provide approximately 20-24 main slides plus exercise/answer overlays; the
+      instructor selects the relevant frames for the 90-minute delivery.
 - [x] Cover progressive-wave notation, amplitude/wavelength/period/phase,
       propagation direction, phase speed, particle motion versus signal motion,
       reflection and standing waves, the surface-gravity-wave dispersion
@@ -455,7 +459,7 @@ and organized as a scientific report rather than another tutorial.
 - [x] Compile from a clean LaTeX environment with `latexmk` or `pdflatex`.
 - [x] Check for missing assets, unresolved references, and serious overfull boxes.
 - [x] Verify all equations, units, and numerical exercise answers independently.
-- [ ] Present once against a two-hour timing plan and trim if needed.
+- [ ] Present once against a 90-minute timing plan and trim delivery if needed.
 
 ---
 
@@ -481,6 +485,68 @@ and organized as a scientific report rather than another tutorial.
       numba caches, or unintended executed notebook copies.
 - [ ] Freeze the course release archive and record its package version and git
       commit in the instructor notes.
+
+---
+
+## Stage 11: 90-minute blocks and animation pass
+
+- [x] Add a separate Miniconda + VS Code + Jupyter installation guide for
+      Windows, macOS, and Linux using `pip` and optional numba.
+- [x] Give Part A an immediate two-dimensional wave animation and a short,
+      reusable `animate_and_save(...)` helper.
+- [x] Save GIFs for every simulated Part A and Part B solution under the course
+      `animations/` directory without tracking generated files in git.
+- [x] Add a focused note distinguishing topographic scattering and numerical
+      dispersion in the first Part B experiment from full surface-wave
+      dispersion.
+- [x] Expose constant rotation in Part C through the student-facing parameter
+      `f`, and include the inertial period among possible theory comparisons.
+- [x] Replace notebook LaTeX inline delimiters with `$...$` and display equations
+      with `$$...$$`.
+- [x] Update student and instructor timing to one 90-minute lecture, one block
+      each for Parts A and B, and two blocks for Part C.
+- [x] Regenerate all five notebooks and pass structural validation.
+- [x] Execute all five notebooks with the NumPy backend and confirm GIF output.
+- [x] Execute the two solution notebooks and Part C with the numba backend.
+- [x] Run the package regression suite to confirm no existing scripts or APIs
+      were broken by the course-material changes.
+
+---
+
+## Stage 12: Part C toolbox and report-template split
+
+- [x] End Part B with the short uniform-wind demonstration as section 4.
+- [x] Remove mapped-input and project-design material from Part B.
+- [x] Add `part_c_project_description.ipynb` as a 45-minute, instructor-led
+      toolbox demonstration rather than a student worksheet.
+- [x] Animate a wave over file-backed bathymetry with persistent bottom-depth
+      contour lines.
+- [x] Animate the response to mapped wind with estimated wind-speed contours and
+      subsampled wind-direction arrows.
+- [x] Move the project-control menu and example experimental design into the
+      toolbox notebook.
+- [x] Rename the submission notebook to
+      `part_c_project_report_template.ipynb` and update all references.
+- [x] Regenerate all six notebooks and remove the legacy Part C filename.
+- [x] Execute all notebooks with NumPy and the Part C notebooks with numba.
+- [x] Run course validation and package regression tests.
+
+---
+
+## Stage 13: short exploratory report template
+
+- [x] State explicitly that Part C is a short exploratory project graded only G
+      (Godkänt) or U (Underkänt).
+- [x] Keep the existing assessment criteria without numerical weights.
+- [x] Limit the intended experiment to a baseline and one controlled variation,
+      with an optional second variation only if time permits.
+- [x] Keep only setup imports, `make_initial_state(...)`, and `run_case(...)` as
+      provided code; leave case design, diagnostics, and plotting to students.
+- [x] Replace the detailed baseline/variation/diagnostic scaffolding with compact
+      Experiment and Results-and-interpretation sections.
+- [x] Remove the separate Comparison with theory and Limitations sections.
+- [x] Regenerate and execute the simplified report template.
+- [x] Run course validation and regression tests.
 
 ## Suggested implementation order for later sessions
 
