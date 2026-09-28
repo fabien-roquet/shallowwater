@@ -6,7 +6,7 @@ On the validation laptop, the numerical integrations remain only a few seconds.
 GIF encoding and inline HTML rendering now dominate the Part A and Part B run
 time. The much looser release limits of 5 minutes for Part A, 8 minutes for Part
 B, and 3 minutes for one default-sized Part C case accommodate slower student
-machines.
+machines. Part B runs only the 120 m shelf case by default.
 
 ## Part A
 
@@ -30,17 +30,10 @@ machines.
   approximately 0.56, 1.73, 2.60, and 3.72 hours.
 - Typical peak surface displacements are approximately 0.119, 0.117, 0.141,
   and 0.192 m. Treat these as grid-dependent model diagnostics, not run-up.
-- With coastal depth changed to 300 m, the last-gauge peak occurs around
-  3.62 hours with amplitude around 0.176 m.
-- The example bathymetry has shape `(24, 160)`, minimum depth about 251 m, and
-  maximum depth 2000 m.
-- Eastward uniform wind produces positive setup at the eastern wall and negative
-  displacement toward the west; free oscillations follow shut-off.
 - The wavetrain behind the shelf-crossing pulse is tied to topographic
   scattering and interference, with a possible numerical-dispersion component.
   It is not the full finite-depth dispersion relation.
-- A complete run writes shelf-120 m, shelf-300 m, and wind-release GIFs under
-  `animations/`.
+- A complete run writes only `part_b_shelf_120m.gif` under `animations/`.
 
 ## Part C report helper defaults
 
@@ -52,6 +45,15 @@ machines.
 
 ## Part C project-description toolbox
 
+- The optional analytic-shelf recipe reproduces the controlled coastal-depth
+  comparison moved from Part B. If run, the 300 m case typically gives a final
+  gauge peak around 3.62 hours and 0.176 m, earlier and lower than the default
+  120 m case.
+- The optional uniform-wind recipe produces positive setup at the eastern wall
+  and negative displacement toward the west under eastward stress; free
+  oscillations follow shut-off.
+- The supplied bathymetry has shape `(24, 160)`, minimum depth about 251 m, and
+  maximum depth 2000 m.
 - The file-backed bathymetry case uses the supplied `(24, 160)` depth map and
   writes `part_c_toolbox_bathymetry.gif` with persistent depth contours.
 - The mapped-wind case derives a display-only wind speed from the stress map

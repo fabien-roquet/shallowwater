@@ -4,7 +4,7 @@ This document is the implementation backlog for the two guided laboratories and
 the final group project. Work should proceed in the order below. A stage is not
 complete until its validation checklist passes.
 
-## Implementation status (12 August 2026)
+## Implementation status (28 September 2026)
 
 All locally implementable items are complete and checked below. The remaining
 unchecked items are release or teaching-event gates that cannot be completed in
@@ -16,9 +16,9 @@ this workspace:
 - validate the student bundle on a Windows machine;
 - freeze/tag the final release archive and record its final git commit.
 
-Local validation used the built 0.1.4 wheel, both NumPy and numba backends, all
-six generated notebooks, eight generated GIFs, the compiled lecture, and all
-twelve legacy scripts.
+The current local validation target uses the built 0.1.4 wheel, both NumPy and
+numba backends, all six generated notebooks, six generated GIFs, the compiled
+lecture, and all twelve legacy scripts.
 
 ## Agreed course structure
 
@@ -26,10 +26,10 @@ twelve legacy scripts.
   and observations of surface waves.
 - One 90-minute Part A block: environment check, animated propagation, speed,
   reflection, and a small controlled change.
-- One 90-minute Part B block: animated variable-depth experiment followed by an
-  animated uniform-wind setup and release.
-- A 45-minute Part C project-description/toolbox demonstration at the start of
-  the two 90-minute Part C blocks.
+- One shared 90-minute block: a focused 45-minute Part B shelf-and-gauges
+  activity followed by a 45-minute Part C project-description/toolbox
+  demonstration.
+- Two full 90-minute Part C project-work blocks after the toolbox demonstration.
 - A separate Part C report template for the group project.
 - Four student-facing notebooks: Parts A and B, the Part C toolbox demonstration,
   and the Part C report template.
@@ -363,16 +363,17 @@ and wrapped in a callable; no disk access should occur inside the timestep loop.
 - [x] Measure local propagation speed and compare with local `sqrt(gH)`.
 - [x] Examine surface-elevation changes without calling the last wet-cell height
       inundation, run-up, or hazard.
-- [x] Compare two coastal depths or two shelf widths as the required controlled
-      experiment.
+- [x] Keep the required Part B run to one shelf case; provide the controlled
+      coastal-depth comparison as an optional Part C setup recipe.
 - [x] Explain the purpose of any sponge layer and distinguish it from a physical
       coast.
 - [x] Explicitly state that all cells remain wet and that breaking, wetting and
       drying, and coastal inundation are absent.
 
-### Short wind demonstration and hand-off
+### Project hand-off
 
-- [x] Retain a concise uniform-wind setup and release case as section 4.
+- [x] Provide the concise uniform-wind setup and release case as an optional
+      Part C setup recipe rather than a required Part B run.
 - [x] Move file-backed bathymetry, mapped wind, project controls, and project
       design guidance out of Part B into a separate Part C toolbox notebook.
 
@@ -503,8 +504,9 @@ and organized as a scientific report rather than another tutorial.
       `f`, and include the inertial period among possible theory comparisons.
 - [x] Replace notebook LaTeX inline delimiters with `$...$` and display equations
       with `$$...$$`.
-- [x] Update student and instructor timing to one 90-minute lecture, one block
-      each for Parts A and B, and two blocks for Part C.
+- [x] Update student and instructor timing to one 90-minute lecture, one Part A
+      block, one block shared by Part B and the toolbox, and two Part C project
+      blocks.
 - [x] Regenerate all five notebooks and pass structural validation.
 - [x] Execute all five notebooks with the NumPy backend and confirm GIF output.
 - [x] Execute the two solution notebooks and Part C with the numba backend.
@@ -515,7 +517,7 @@ and organized as a scientific report rather than another tutorial.
 
 ## Stage 12: Part C toolbox and report-template split
 
-- [x] End Part B with the short uniform-wind demonstration as section 4.
+- [x] Move the short uniform-wind demonstration into the Part C setup recipes.
 - [x] Remove mapped-input and project-design material from Part B.
 - [x] Add `part_c_project_description.ipynb` as a 45-minute, instructor-led
       toolbox demonstration rather than a student worksheet.
@@ -547,6 +549,26 @@ and organized as a scientific report rather than another tutorial.
 - [x] Remove the separate Comparison with theory and Limitations sections.
 - [x] Regenerate and execute the simplified report template.
 - [x] Run course validation and regression tests.
+
+---
+
+## Stage 14: shorten the tutorial and protect project time
+
+- [x] Reduce Part B to a 45-minute shelf, dispersion, and virtual-gauge
+      activity with one model run and one generated GIF.
+- [x] Move the 120 m versus 300 m shelf comparison into the Part C toolbox as an
+      optional function that does not run by default.
+- [x] Move the uniform-wind setup/release case into the Part C toolbox as an
+      optional function that does not run by default.
+- [x] Add compact setup examples for initial state, domain/resolution, rotation,
+      and damping while keeping the two mapped-input demonstrations as the only
+      default toolbox simulations.
+- [x] Update the student sequence, instructor timing, expected results,
+      structural validator, and regression tests for the new split.
+- [x] Regenerate all six notebooks and pass structural validation.
+- [x] Execute all six notebooks with the NumPy backend and confirm the six GIFs.
+- [x] Execute the Part B solution and both Part C notebooks with numba.
+- [x] Run the package regression suite and confirm no package files changed.
 
 ## Suggested implementation order for later sessions
 

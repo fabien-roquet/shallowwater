@@ -72,7 +72,7 @@ def test_part_c_report_template_has_required_sections():
     assert "animate_case" not in code_text
 
 
-def test_part_c_toolbox_owns_mapped_input_demonstrations():
+def test_short_part_b_and_part_c_toolbox_split():
     part_b_text = "\n".join(
         cell.source for cell in _read("part_b_bathymetry_student.ipynb").cells
     )
@@ -80,13 +80,43 @@ def test_part_c_toolbox_owns_mapped_input_demonstrations():
         cell.source for cell in _read("part_c_project_description.ipynb").cells
     )
 
-    assert "## 4. Short wind-forced demonstration" in part_b_text
+    assert "Working time:** about 45 minutes" in part_b_text
+    assert "## 1. Build a shelf and make a prediction" in part_b_text
+    assert "## 2. Virtual gauges" in part_b_text
+    assert "## 3. Take-away" in part_b_text
+    assert "part_b_shelf_120m.gif" in part_b_text
+    assert "Controlled coastal-depth experiment" not in part_b_text
+    assert "uniform_wind_forcing" not in part_b_text
+    assert "part_b_shelf_300m.gif" not in part_b_text
+    assert "part_b_wind_setup_release.gif" not in part_b_text
     assert "load_bathymetry" not in part_b_text
     assert "make_wind_forcing_from_file" not in part_b_text
-    assert "## 4. Bathymetry supplied as a file" in toolbox_text
-    assert "## 5. Wind forcing supplied as a file" in toolbox_text
+    assert "## 4. Setup recipes: copy, adapt, compare" in toolbox_text
+    assert "def run_analytic_shelf_case" in toolbox_text
+    assert "def run_uniform_wind_case" in toolbox_text
+    assert "## 5. Bathymetry supplied as a file" in toolbox_text
+    assert "## 6. Wind forcing supplied as a file" in toolbox_text
     assert "ax.contour(" in toolbox_text
     assert "ax.quiver(" in toolbox_text
+
+
+def test_optional_part_c_setup_recipes_run_when_called():
+    notebook = _read("part_c_project_description.ipynb")
+    namespace = {}
+    for cell in notebook.cells:
+        if cell.cell_type == "code":
+            exec(compile(cell.source, cell.id, "exec"), namespace)
+            if "def run_uniform_wind_case" in cell.source:
+                break
+
+    shelf = namespace["run_analytic_shelf_case"](120.0, tmax_hours=0.02)
+    wind = namespace["run_uniform_wind_case"](
+        wind_off_hours=0.01, tmax_hours=0.02,
+    )
+
+    assert np.asarray(shelf["params"].H).shape == (24, 160)
+    assert np.asarray(shelf["out"]["eta"]).shape[1:] == (24, 160)
+    assert np.asarray(wind["out"]["eta"]).shape[1:] == (24, 160)
 
 
 def test_course_input_data_are_valid():
@@ -102,5 +132,5 @@ def test_course_input_data_are_valid():
 def test_lecture_source_and_pdf_exist():
     source = COURSE / "lecture" / "shallow_water_waves_lecture.tex"
     pdf = COURSE / "lecture" / "shallow_water_waves_lecture.pdf"
-    assert 20 <= source.read_text(encoding="utf-8").count("\\begin{frame}") <= 28
+    assert 16 <= source.read_text(encoding="utf-8").count("\\begin{frame}") <= 28
     assert pdf.stat().st_size > 10_000

@@ -3,17 +3,17 @@
 ## Overall timing
 
 The sequence assumes one 90-minute lecture followed by four 90-minute laboratory
-blocks: one for Part A, one for Part B, and two for Part C.
+blocks: one for Part A, one shared by Part B and the project explanation, and two
+for Part C project work.
 
 ### Lecture: 90 minutes
 
-- Slides 1–4, motivation and progressive-wave notation: 10 minutes.
-- Slides 5–8, exercise and phase propagation: 15 minutes.
-- Slides 9–13, surface-wave dispersion and shallow/deep classification:
-  20 minutes.
-- Added surface-wave observation material: 10 minutes.
-- Slides 14–20, shallow-water speed, reflection, and seiches: 25 minutes.
-- Slides 21–24, bathymetry, forcing, model scope, and laboratory launch: 10 minutes.
+- Slides 1–6, motivation, progressive-wave notation, and Exercise 1: 20 minutes.
+- Slides 7–11, surface-wave dispersion and shallow/deep classification, together
+  with the added surface-wave observation material: 30 minutes.
+- Slides 12–14, varying depth, long-wave speed, and Exercise 3: 15 minutes.
+- Slides 15–18, reflection, seiches, and Exercise 4: 20 minutes.
+- Transition from the lecture to the numerical laboratory: 5 minutes.
 
 Exercise answers are revealed on separate frames so students can first work in
 pairs. Encourage estimates and units before calculator precision.
@@ -35,31 +35,48 @@ water across the basin. Ask them to distinguish surface displacement from
 depth-averaged velocity. Another common issue is measuring after the pulse has
 reflected; point out the pre-reflection branch in the Hovmöller diagram.
 
-### Part B: 90 minutes
+### Part B and project explanation: 90 minutes
 
-- Bathymetry, speed prediction, and first run: 15 minutes.
-- Shelf animation and discussion of the dispersive-looking wake: 20 minutes.
-- Virtual gauges: 20 minutes.
-- Controlled coastal-depth comparison and animation: 20 minutes.
-- Short uniform-wind setup/release demonstration: 15 minutes.
+Use the first 45 minutes for Part B:
+
+- Bathymetry and speed prediction: 8 minutes.
+- Run and view the shelf animation: 12 minutes.
+- Discuss the dispersive-looking wake: 10 minutes.
+- Read the virtual gauges and state the take-away: 15 minutes.
+
+Use the next 45 minutes for the Part C project-description/toolbox notebook:
+
+- Frame a short controlled project and review the available controls: 8 minutes.
+- Tour the setup recipes for initial state, domain/resolution, rotation,
+  damping, analytic shelf depth, and uniform wind: 12 minutes.
+- Run or show the two mapped-input demonstrations: 18 minutes.
+- Connect the toolbox to the report template and take questions: 7 minutes.
+
+The analytic 120 m versus 300 m shelf comparison and the uniform-wind
+setup/release case are now optional toolbox recipes. Do not run them during the
+demonstration unless they directly support a group's proposed question.
 
 Avoid the phrase "most dangerous coast." The last model cell is permanently wet
 and is not a beach. Ask students to report modeled surface elevation at a stated
 cell and to separate shoaling, reflection, and geometrical effects.
 
-### Part C, block 1: 90 minutes
+### Part C project, block 1: 90 minutes
 
-- Instructor-led project-description/toolbox notebook: 45 minutes.
 - Confirm each group's question, prediction, primary control, and diagnostic:
   15 minutes.
-- Copy and rename the report template, then run the baseline: 30 minutes.
+- Copy and rename the report template, then implement and run the baseline:
+  30 minutes.
+- Run one controlled variation: 30 minutes.
+- Start the quantitative diagnostic and record what remains uncertain:
+  15 minutes.
 
-### Part C, block 2: 90 minutes
+### Part C project, block 2: 90 minutes
 
-- Run one controlled variation and, if time permits, a second: 35 minutes.
-- Quantitative diagnostic and interpretation of the main result: 25 minutes.
+- Review the baseline and first variation and, if time permits, run a second
+  variation: 25 minutes.
+- Quantitative diagnostic and interpretation of the main result: 30 minutes.
 - Short peer review between groups: 10 minutes.
-- Revision, one relevant caveat, conclusion, and run-all check: 20 minutes.
+- Revision, one relevant caveat, conclusion, and run-all check: 25 minutes.
 
 Require groups to show a successful baseline before running a variation.
 If a group changes domain size, check whether it has unintentionally changed
@@ -102,10 +119,10 @@ radius rather than merely toggling `f`.
 ## Animation guidance
 
 Parts A and B save each simulated solution as a GIF under `animations/` while
-also displaying it inline. The directory is kept in the distribution, but its
-generated contents are ignored by git. Animations are for noticing motion and
-forming questions; require a gauge, speed, arrival time, period, or other number
-for any assessed claim.
+also displaying it inline; the shortened Part B now generates one GIF. The
+directory is kept in the distribution, but its generated contents are ignored
+by git. Animations are for noticing motion and forming questions; require a
+gauge, speed, arrival time, period, or other number for any assessed claim.
 
 The Part C project-description notebook adds two instructor demonstrations. In
 the bathymetry example, depth contours remain over the evolving free surface. In

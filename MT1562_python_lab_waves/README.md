@@ -10,13 +10,14 @@ to an independent numerical investigation.
    and observations of surface waves.
 2. One 90-minute block for **Part A — Waves in a box:** environment check,
    animated propagation and reflection, wave speed, and a depth comparison.
-3. One 90-minute block for **Part B — Variable bathymetry:** an animated
-   tsunami-like long wave, dispersion and scattering, virtual gauges, a
-   controlled bathymetry experiment, and a short wind-forcing demonstration.
-4. A 45-minute **Part C project-description and toolbox demonstration:** mapped
-   bathymetry and wind forcing, experiment controls, and project design.
-5. **Part C short exploratory project:** run a small controlled comparison and
-   communicate one clear result during the remaining project time.
+3. One shared 90-minute block: 45 minutes for **Part B — Variable
+   bathymetry**, focused on one animated tsunami-like long wave, its
+   dispersive-looking wake, and virtual gauges; then a 45-minute **Part C
+   project-description and toolbox demonstration**.
+4. Two 90-minute blocks for the **Part C short exploratory project:** run a
+   small controlled comparison and communicate one clear result. The toolbox
+   collects setup examples for bottom depth, wind, domain and resolution,
+   initial state, rotation, damping, and mapped inputs.
 
 Only the completed Part C notebook is submitted. Parts A and B have separate
 instructor solutions.
@@ -31,7 +32,7 @@ instructor solutions.
 - `notebooks/part_c_project_report_template.ipynb`
 - `data/example_bathymetry.npz`
 - `data/example_wind_forcing.npz`
-- `animations/` (GIFs are generated here when Parts A and B run)
+- `animations/` (GIFs are generated here when Parts A, B, and the toolbox run)
 
 Keep the `notebooks/` and `data/` directories next to one another. The Part C
 project-description notebook locates the supplied maps through a relative path.
@@ -39,7 +40,9 @@ project-description notebook locates the supplied maps through a relative path.
 The generated model cases are intentionally small. GIF encoding and inline
 display take longer than the numerical integrations, especially on the first
 run. The release limits are 5 minutes for Part A, 8 minutes for Part B, and 3
-minutes for one default-sized Part C case without numba.
+minutes for one default-sized Part C case without numba. Only one Part B model
+case runs by default; the moved depth-comparison and uniform-wind examples are
+optional recipes in the Part C toolbox.
 
 ## Installation
 

@@ -39,8 +39,6 @@ EXPECTED_ANIMATIONS = (
     "part_a_uniform_400m.gif",
     "part_a_uniform_900m.gif",
     "part_b_shelf_120m.gif",
-    "part_b_shelf_300m.gif",
-    "part_b_wind_setup_release.gif",
     "part_c_toolbox_bathymetry.gif",
     "part_c_toolbox_wind.gif",
 )
@@ -113,11 +111,23 @@ def validate_notebooks():
     part_b_text = "\n".join(
         cell.source for cell in loaded["part_b_bathymetry_student.ipynb"].cells
     )
-    if "## 4. Short wind-forced demonstration" not in part_b_text:
-        fail("Part B does not retain the short wind-forced demonstration as section 4")
+    if "Working time:** about 45 minutes" not in part_b_text:
+        fail("Part B does not state its shortened 45-minute duration")
+    part_b_required = (
+        "## 1. Build a shelf and make a prediction",
+        "A dispersive-looking wake",
+        "## 2. Virtual gauges",
+        "## 3. Take-away",
+        "part_b_shelf_120m.gif",
+    )
+    missing_part_b = [item for item in part_b_required if item not in part_b_text]
+    if missing_part_b:
+        fail(f"The shortened Part B is incomplete: {missing_part_b}")
     moved_content = (
         "load_bathymetry", "make_wind_forcing_from_file",
         "Controls available for Part C", "Part C proposal",
+        "Controlled coastal-depth experiment", "uniform_wind_forcing",
+        "part_b_shelf_300m.gif", "part_b_wind_setup_release.gif",
     )
     unexpected = [item for item in moved_content if item in part_b_text]
     if unexpected:
@@ -129,8 +139,14 @@ def validate_notebooks():
     toolbox_required = (
         "Demonstration time:** about 45 minutes",
         "## 2. Controls available for Part C",
-        "## 4. Bathymetry supplied as a file",
-        "## 5. Wind forcing supplied as a file",
+        "## 4. Setup recipes: copy, adapt, compare",
+        "def run_analytic_shelf_case",
+        "def run_uniform_wind_case",
+        "shelf_bathymetry",
+        "uniform_wind_forcing",
+        "## 5. Bathymetry supplied as a file",
+        "## 6. Wind forcing supplied as a file",
+        "## 7. Turning the toolbox into a project",
         "part_c_toolbox_bathymetry.gif",
         "part_c_toolbox_wind.gif",
         "ax.contour(",
@@ -224,7 +240,7 @@ def validate_lecture_files():
     if not tex.exists() or not pdf.exists() or pdf.stat().st_size < 10_000:
         fail("Lecture source or compiled PDF is missing")
     frame_count = tex.read_text(encoding="utf-8").count("\\begin{frame}")
-    if not 20 <= frame_count <= 28:
+    if not 16 <= frame_count <= 28:
         fail(f"Unexpected main lecture frame count: {frame_count}")
 
 
