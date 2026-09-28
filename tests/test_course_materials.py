@@ -134,3 +134,12 @@ def test_lecture_source_and_pdf_exist():
     pdf = COURSE / "lecture" / "shallow_water_waves_lecture.pdf"
     assert 16 <= source.read_text(encoding="utf-8").count("\\begin{frame}") <= 28
     assert pdf.stat().st_size > 10_000
+
+    project_source = COURSE / "lecture" / "shallow_water_project_introduction.tex"
+    project_pdf = COURSE / "lecture" / "shallow_water_project_introduction.pdf"
+    project_text = project_source.read_text(encoding="utf-8")
+    assert project_text.count("\\begin{frame}") == 5
+    assert r"\documentclass[aspectratio=169]{beamer}" in project_text
+    assert r"\usetheme{Madrid}" in project_text
+    assert r"\definecolor{deepblue}{RGB}{25,87,140}" in project_text
+    assert project_pdf.stat().st_size > 10_000

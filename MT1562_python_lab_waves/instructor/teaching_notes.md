@@ -46,11 +46,12 @@ Use the first 45 minutes for Part B:
 
 Use the next 45 minutes for the Part C project-description/toolbox notebook:
 
-- Frame a short controlled project and review the available controls: 8 minutes.
+- Present the five project-introduction slides and frame a short controlled
+  project: 7 minutes.
 - Tour the setup recipes for initial state, domain/resolution, rotation,
   damping, analytic shelf depth, and uniform wind: 12 minutes.
 - Run or show the two mapped-input demonstrations: 18 minutes.
-- Connect the toolbox to the report template and take questions: 7 minutes.
+- Connect the toolbox to the report template and take questions: 8 minutes.
 
 The analytic 120 m versus 300 m shelf comparison and the uniform-wind
 setup/release case are now optional toolbox recipes. Do not run them during the

@@ -24,6 +24,10 @@ DATA_DIR = COURSE_ROOT / "data"
 LECTURE_DIR = COURSE_ROOT / "lecture"
 ANIMATION_DIR = COURSE_ROOT / "animations"
 EXPECTED_VERSION = "0.1.4"
+LECTURE_STEMS = (
+    "shallow_water_waves_lecture",
+    "shallow_water_project_introduction",
+)
 
 NOTEBOOKS = (
     "part_a_waves_student.ipynb",
@@ -243,6 +247,29 @@ def validate_lecture_files():
     if not 16 <= frame_count <= 28:
         fail(f"Unexpected main lecture frame count: {frame_count}")
 
+    project_tex = LECTURE_DIR / "shallow_water_project_introduction.tex"
+    project_pdf = LECTURE_DIR / "shallow_water_project_introduction.pdf"
+    if (
+        not project_tex.exists()
+        or not project_pdf.exists()
+        or project_pdf.stat().st_size < 10_000
+    ):
+        fail("Project-introduction slide source or compiled PDF is missing")
+    project_source = project_tex.read_text(encoding="utf-8")
+    project_frame_count = project_source.count("\\begin{frame}")
+    if project_frame_count != 5:
+        fail(
+            "Project introduction must contain exactly five frames; "
+            f"found {project_frame_count}"
+        )
+    shared_style = (
+        r"\documentclass[aspectratio=169]{beamer}",
+        r"\usetheme{Madrid}",
+        r"\definecolor{deepblue}{RGB}{25,87,140}",
+    )
+    if any(marker not in project_source for marker in shared_style):
+        fail("Project-introduction slides do not match the main lecture format")
+
 
 def strip_notebook_outputs():
     """Remove accidental outputs from generated distribution notebooks."""
@@ -297,30 +324,31 @@ def execute_notebooks():
 
 
 def compile_lecture():
-    subprocess.run(
-        [
-            "latexmk",
-            "-pdf",
-            "-interaction=nonstopmode",
-            "-halt-on-error",
-            "shallow_water_waves_lecture.tex",
-        ],
-        cwd=LECTURE_DIR,
-        check=True,
-    )
-    log = (LECTURE_DIR / "shallow_water_waves_lecture.log").read_text(
-        encoding="utf-8", errors="replace"
-    )
-    if "Overfull \\hbox" in log or "Overfull \\vbox" in log:
-        fail("Lecture contains an overfull box; inspect the LaTeX log")
-    subprocess.run(
-        ["latexmk", "-c", "shallow_water_waves_lecture.tex"],
-        cwd=LECTURE_DIR,
-        check=True,
-        stdout=subprocess.DEVNULL,
-    )
-    for suffix in (".nav", ".snm", ".vrb"):
-        (LECTURE_DIR / f"shallow_water_waves_lecture{suffix}").unlink(missing_ok=True)
+    for stem in LECTURE_STEMS:
+        subprocess.run(
+            [
+                "latexmk",
+                "-pdf",
+                "-interaction=nonstopmode",
+                "-halt-on-error",
+                f"{stem}.tex",
+            ],
+            cwd=LECTURE_DIR,
+            check=True,
+        )
+        log = (LECTURE_DIR / f"{stem}.log").read_text(
+            encoding="utf-8", errors="replace"
+        )
+        if "Overfull \\hbox" in log or "Overfull \\vbox" in log:
+            fail(f"{stem} contains an overfull box; inspect the LaTeX log")
+        subprocess.run(
+            ["latexmk", "-c", f"{stem}.tex"],
+            cwd=LECTURE_DIR,
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+        for suffix in (".nav", ".snm", ".vrb"):
+            (LECTURE_DIR / f"{stem}{suffix}").unlink(missing_ok=True)
 
 
 def main():

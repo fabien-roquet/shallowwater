@@ -570,6 +570,17 @@ and organized as a scientific report rather than another tutorial.
 - [x] Execute the Part B solution and both Part C notebooks with numba.
 - [x] Run the package regression suite and confirm no package files changed.
 
+---
+
+## Stage 15: project-introduction slides
+
+- [x] Add a separate Beamer deck matching the main lecture style and limited to
+      five frames.
+- [x] Cover project scope, available controls, controlled comparison, workflow,
+      submission, and G/U assessment.
+- [x] Compile the PDF, inspect every frame, and enforce the slide limit in course
+      validation and tests.
+
 ## Suggested implementation order for later sessions
 
 1. Stage 0: confirm scope/version and record baseline.

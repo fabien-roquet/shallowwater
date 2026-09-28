@@ -25,6 +25,7 @@ instructor solutions.
 ## Files for students
 
 - `lecture/shallow_water_waves_lecture.pdf`
+- `lecture/shallow_water_project_introduction.pdf`
 - `INSTALLATION.md`
 - `notebooks/part_a_waves_student.ipynb`
 - `notebooks/part_b_bathymetry_student.ipynb`
