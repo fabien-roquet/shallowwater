@@ -29,8 +29,8 @@ instructor solutions.
 - `INSTALLATION.md`
 - `notebooks/part_a_waves_student.ipynb`
 - `notebooks/part_b_bathymetry_student.ipynb`
-- `notebooks/part_c_project_description.ipynb`
-- `notebooks/part_c_project_report_template.ipynb`
+- `notebooks/project_description.ipynb`
+- `notebooks/project_report_template.ipynb`
 - `data/example_bathymetry.npz`
 - `data/example_wind_forcing.npz`
 - `animations/` (GIFs are generated here when Parts A, B, and the toolbox run)
@@ -92,7 +92,7 @@ $\mathrm{N\,m^{-2}}$.
 
 ## Part C submission rule
 
-Start from `part_c_project_report_template.ipynb`, rename the copy with the group
+Start from `project_report_template.ipynb`, rename the copy with the group
 identifier, and submit that executed report notebook. Do not submit the
 project-description/toolbox notebook. Required figures and numerical outputs
 must remain visible, but large animations should be removed.

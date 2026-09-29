@@ -43,7 +43,7 @@ def test_student_solution_pairs_share_structure_and_code():
 
 def test_part_c_report_template_has_required_sections():
     text = "\n".join(
-        cell.source for cell in _read("part_c_project_report_template.ipynb").cells
+        cell.source for cell in _read("project_report_template.ipynb").cells
     )
     for heading in (
         "## Group and research question",
@@ -62,7 +62,7 @@ def test_part_c_report_template_has_required_sections():
     assert "## Comparison with theory" not in text
     assert "## Limitations" not in text
 
-    report = _read("part_c_project_report_template.ipynb")
+    report = _read("project_report_template.ipynb")
     code_cells = [cell for cell in report.cells if cell.cell_type == "code"]
     assert len(code_cells) == 2
     code_text = "\n".join(cell.source for cell in code_cells)
@@ -77,7 +77,7 @@ def test_short_part_b_and_part_c_toolbox_split():
         cell.source for cell in _read("part_b_bathymetry_student.ipynb").cells
     )
     toolbox_text = "\n".join(
-        cell.source for cell in _read("part_c_project_description.ipynb").cells
+        cell.source for cell in _read("project_description.ipynb").cells
     )
 
     assert "Working time:** about 45 minutes" in part_b_text
@@ -101,7 +101,7 @@ def test_short_part_b_and_part_c_toolbox_split():
 
 
 def test_optional_part_c_setup_recipes_run_when_called():
-    notebook = _read("part_c_project_description.ipynb")
+    notebook = _read("project_description.ipynb")
     namespace = {}
     for cell in notebook.cells:
         if cell.cell_type == "code":

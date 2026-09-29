@@ -569,7 +569,7 @@ def part_b_specs():
     ]
 
 
-def part_c_project_description_specs():
+def project_description_specs():
     return [
         markdown(r"""
         # Part C — Project description and toolbox
@@ -1235,12 +1235,12 @@ def main():
     _write_pair("part_a_waves", "a", part_a_specs())
     _write_pair("part_b_bathymetry", "b", part_b_specs())
     nbf.write(
-        _render(part_c_project_description_specs(), solution=False, prefix="ct"),
-        NOTEBOOK_DIR / "part_c_project_description.ipynb",
+        _render(project_description_specs(), solution=False, prefix="ct"),
+        NOTEBOOK_DIR / "project_description.ipynb",
     )
     nbf.write(
         _render(part_c_report_specs(), solution=False, prefix="cr"),
-        NOTEBOOK_DIR / "part_c_project_report_template.ipynb",
+        NOTEBOOK_DIR / "project_report_template.ipynb",
     )
     build_example_data()
     print(f"Wrote notebooks to {NOTEBOOK_DIR}")

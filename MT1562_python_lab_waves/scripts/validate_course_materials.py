@@ -34,8 +34,8 @@ NOTEBOOKS = (
     "part_a_waves_solutions.ipynb",
     "part_b_bathymetry_student.ipynb",
     "part_b_bathymetry_solutions.ipynb",
-    "part_c_project_description.ipynb",
-    "part_c_project_report_template.ipynb",
+    "project_description.ipynb",
+    "project_report_template.ipynb",
 )
 
 EXPECTED_ANIMATIONS = (
@@ -138,7 +138,7 @@ def validate_notebooks():
         fail(f"Part B still contains content intended for the Part C toolbox: {unexpected}")
 
     toolbox_text = "\n".join(
-        cell.source for cell in loaded["part_c_project_description.ipynb"].cells
+        cell.source for cell in loaded["project_description.ipynb"].cells
     )
     toolbox_required = (
         "Demonstration time:** about 45 minutes",
@@ -161,7 +161,7 @@ def validate_notebooks():
         fail(f"Part C project-description toolbox is incomplete: {missing_toolbox}")
 
     part_c_text = "\n".join(
-        cell.source for cell in loaded["part_c_project_report_template.ipynb"].cells
+        cell.source for cell in loaded["project_report_template.ipynb"].cells
     )
     required = (
         "## Group and research question",
@@ -188,7 +188,7 @@ def validate_notebooks():
     if unexpected_scaffolding:
         fail(f"Part C report template is over-scaffolded: {unexpected_scaffolding}")
     report_code_cells = [
-        cell for cell in loaded["part_c_project_report_template.ipynb"].cells
+        cell for cell in loaded["project_report_template.ipynb"].cells
         if cell.cell_type == "code"
     ]
     if len(report_code_cells) != 2:

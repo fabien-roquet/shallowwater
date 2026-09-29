@@ -55,8 +55,8 @@ MT1562_python_lab_waves/
     part_a_waves_solutions.ipynb
     part_b_bathymetry_student.ipynb
     part_b_bathymetry_solutions.ipynb
-    part_c_project_description.ipynb
-    part_c_project_report_template.ipynb
+    project_description.ipynb
+    project_report_template.ipynb
   data/
     example_bathymetry.npz
     example_wind_forcing.npz
@@ -519,7 +519,7 @@ and organized as a scientific report rather than another tutorial.
 
 - [x] Move the short uniform-wind demonstration into the Part C setup recipes.
 - [x] Remove mapped-input and project-design material from Part B.
-- [x] Add `part_c_project_description.ipynb` as a 45-minute, instructor-led
+- [x] Add `project_description.ipynb` as a 45-minute, instructor-led
       toolbox demonstration rather than a student worksheet.
 - [x] Animate a wave over file-backed bathymetry with persistent bottom-depth
       contour lines.
@@ -528,7 +528,7 @@ and organized as a scientific report rather than another tutorial.
 - [x] Move the project-control menu and example experimental design into the
       toolbox notebook.
 - [x] Rename the submission notebook to
-      `part_c_project_report_template.ipynb` and update all references.
+      `project_report_template.ipynb` and update all references.
 - [x] Regenerate all six notebooks and remove the legacy Part C filename.
 - [x] Execute all notebooks with NumPy and the Part C notebooks with numba.
 - [x] Run course validation and package regression tests.
