@@ -40,3 +40,17 @@ def test_numba_staggered_velocity_interpolation_matches_reference():
     np.testing.assert_allclose(nbops.v_on_u_nb(v), expected_v_on_u)
     np.testing.assert_allclose(nbops.u_on_v_nb(u), expected_u_on_v)
 
+
+
+def test_numba_closed_curl_matches_corner_stencil_including_walls():
+    rng = np.random.default_rng(19)
+    for ny, nx in ((2, 3), (5, 7)):
+        u = rng.normal(size=(ny, nx+1))
+        v = rng.normal(size=(ny+1, nx))
+        u[:, [0, -1]] = 0
+        v[[0, -1], :] = 0
+        corner = np.zeros((ny+1, nx+1))
+        corner[:, 1:-1] = np.diff(v, axis=1)/2.
+        corner[1:-1] -= np.diff(u, axis=0)/3.
+        expected = .25*(corner[:-1, :-1]+corner[1:, :-1]+corner[:-1, 1:]+corner[1:, 1:])
+        np.testing.assert_allclose(nbops.curl_on_center_nb(u, v, 2., 3.), expected, atol=1e-14)

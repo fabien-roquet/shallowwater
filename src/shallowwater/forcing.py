@@ -65,6 +65,8 @@ def center_wind_to_staggered(tau_x, tau_y, grid):
     taux_u[:, 1:grid.Nx] = 0.5 * (tau_x[:, :-1] + tau_x[:, 1:])
     taux_u[:, 0] = tau_x[:, 0]
     taux_u[:, -1] = tau_x[:, -1]
+    if grid.periodic_x:
+        taux_u[:, 0] = taux_u[:, -1] = 0.5*(tau_x[:, -1]+tau_x[:, 0])
     tauy_v[1:grid.Ny, :] = 0.5 * (tau_y[:-1, :] + tau_y[1:, :])
     tauy_v[0, :] = tau_y[0, :]
     tauy_v[-1, :] = tau_y[-1, :]

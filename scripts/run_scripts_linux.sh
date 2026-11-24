@@ -67,7 +67,7 @@ done
 
 list_scripts() {
     find scripts -maxdepth 1 -type f -name '*.py' \
-        ! -name 'strip_notebooks.py' \
+        ! -name 'strip_notebooks.py' ! -name '_*.py' \
         | sort
 }
 

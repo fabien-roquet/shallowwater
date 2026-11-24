@@ -88,31 +88,16 @@ def divergence_nb(Fx, Fy, dx, dy):
 
 @njit(cache=True, fastmath=True)
 def curl_on_center_nb(u, v, dx, dy):
-    # zeta = dx v - dy u at centers
-    Ny, Nx1 = u.shape
-    Ny1, Nx = v.shape
-    Ny0 = Ny
-    Nx0 = Nx
-    out = np.empty((Ny0, Nx0), dtype=u.dtype)
-
-    # dv/dx to centers
-    for j in range(Ny0):
-        for i in range(Nx0):
-            iL = i-1 if i>0 else 0
-            iR = i if i < Nx-1 else Nx-2
-            dv_dx_left  = (v[j,   i] - v[j,   iL]) / dx
-            dv_dx_right = (v[j+1, i] - v[j+1, iL]) / dx
-            dv_dx_c = 0.5*(dv_dx_left + dv_dx_right)
-
-            # du/dy to centers
-            jB = j-1 if j>0 else 0
-            jT = j if j < Ny-1 else Ny-2
-            du_dy_bot = (u[j,   i+1] - u[jB, i+1]) / dy
-            du_dy_top = (u[j+1, i+1] - u[jT, i+1]) / dy
-            du_dy_c = 0.5*(du_dy_bot + du_dy_top)
-
-            out[j, i] = dv_dx_c - du_dy_c
-    return out
+    Ny, Nx = u.shape[0], v.shape[1]
+    corner = np.zeros((Ny + 1, Nx + 1), dtype=u.dtype)
+    for j in range(Ny + 1):
+        for i in range(1, Nx):
+            corner[j, i] = (v[j, i] - v[j, i-1]) / dx
+    for j in range(1, Ny):
+        for i in range(Nx + 1):
+            corner[j, i] -= (u[j, i] - u[j-1, i]) / dy
+    return 0.25 * (corner[:-1, :-1] + corner[1:, :-1]
+                   + corner[:-1, 1:] + corner[1:, 1:])
 
 @njit(cache=True, fastmath=True)
 def laplacian_u_nb(u, dx, dy):

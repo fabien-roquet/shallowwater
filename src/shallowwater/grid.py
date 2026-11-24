@@ -15,8 +15,10 @@ class Grid:
     y_u: np.ndarray
     x_v: np.ndarray
     y_v: np.ndarray
+    periodic_x: bool = False
 
-def make_grid(Nx: int, Ny: int, Lx: float, Ly: float) -> Grid:
+def make_grid(Nx: int, Ny: int, Lx: float, Ly: float, *, periodic_x: bool = False) -> Grid:
+    """Make a rectangular C-grid; periodic_x joins the west/east u faces."""
     dx = Lx / Nx
     dy = Ly / Ny
     x_c = (np.arange(Nx) + 0.5) * dx
@@ -25,4 +27,4 @@ def make_grid(Nx: int, Ny: int, Lx: float, Ly: float) -> Grid:
     y_u = y_c.copy()
     x_v = x_c.copy()
     y_v = np.arange(Ny + 1) * dy
-    return Grid(Nx, Ny, Lx, Ly, dx, dy, x_c, y_c, x_u, y_u, x_v, y_v)
+    return Grid(Nx, Ny, Lx, Ly, dx, dy, x_c, y_c, x_u, y_u, x_v, y_v, periodic_x)

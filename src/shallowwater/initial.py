@@ -95,6 +95,10 @@ def geostrophic_velocities_from_eta(
     # --- Geostrophic velocities on native grids ------------------------------
     u_g = -(params.g / f_u) * deta_dy_u   # (Ny, Nx+1)
     v_g = +(params.g / f_v) * deta_dx_v   # (Ny+1, Nx)
+    if grid.periodic_x:
+        from . import channel
+        u_g = -(params.g / f_u) * channel.v_on_u(channel.grad_y_on_v(eta, dy))
+        v_g = +(params.g / f_v) * channel.u_on_v(channel.grad_x_on_u(eta, dx))
 
     # --- Optional cosine taper near boundaries -------------------------------
     def cosine_taper_1d(n, s):
@@ -108,9 +112,9 @@ def geostrophic_velocities_from_eta(
 
     if sponge and sponge > 0:
         wy_u = cosine_taper_1d(Ny, sponge)[:, None]
-        wx_u = cosine_taper_1d(Nx + 1, sponge)[None, :]
+        wx_u = (np.ones(Nx + 1) if grid.periodic_x else cosine_taper_1d(Nx + 1, sponge))[None, :]
         wy_v = cosine_taper_1d(Ny + 1, sponge)[:, None]
-        wx_v = cosine_taper_1d(Nx, sponge)[None, :]
+        wx_v = (np.ones(Nx) if grid.periodic_x else cosine_taper_1d(Nx, sponge))[None, :]
         u_g = (wy_u * wx_u) * u_g
         v_g = (wy_v * wx_v) * v_g
 

@@ -93,3 +93,33 @@ def test_existing_wind_forcing_short_run():
     assert np.isfinite(np.asarray(out["eta"])).all()
     assert np.max(np.abs(out["u"][-1])) > 0.0
 
+
+
+def test_closed_basin_curl_uses_collocated_corner_derivatives():
+    """A discrete streamfunction mode has a known corner-Laplacian curl."""
+    from shallowwater import operators
+    from shallowwater.dynamics import _curl_on_center_local
+    grid = make_grid(32, 24, 800e3, 600e3)
+    X, Y = np.meshgrid(grid.x_u, grid.y_v)
+    psi = 1e5*np.sin(np.pi*X/grid.Lx)*np.sin(2*np.pi*Y/grid.Ly)
+    u = -np.diff(psi, axis=0)/grid.dy
+    v = np.diff(psi, axis=1)/grid.dx
+    eigenvalue = (-4*np.sin(np.pi/(2*grid.Nx))**2/grid.dx**2
+                  -4*np.sin(np.pi/grid.Ny)**2/grid.dy**2)
+    expected = .25*eigenvalue*(psi[:-1, :-1]+psi[1:, :-1]+psi[:-1, 1:]+psi[1:, 1:])
+    np.testing.assert_allclose(operators.curl_on_center(u, v, grid.dx, grid.dy), expected, atol=1e-18)
+    np.testing.assert_allclose(_curl_on_center_local(u, v, grid.dx, grid.dy), expected, atol=1e-18)
+
+
+def test_beta_generates_the_correct_vorticity_tendency_in_both_models():
+    """Northward flow on beta>0 must have zeta_t=-beta*v in the interior."""
+    from shallowwater import operators, tendencies
+    grid = make_grid(12, 10, 120e3, 100e3)
+    state = dict(eta=np.zeros((10, 12)), u=np.zeros((10, 13)), v=np.ones((11, 12)))
+    state['v'][[0, -1]] = 0.
+    for linear in (True, False):
+        params = ModelParams(H=200., f0=1e-4, beta=2e-11, y0=grid.Ly/2,
+                             r=0., Ah=0., linear=linear)
+        _, du, dv = tendencies(state, 0., grid, params, zero_forcing)
+        curl_t = operators.curl_on_center(du, dv, grid.dx, grid.dy)
+        np.testing.assert_allclose(curl_t[2:-2, 2:-2], -params.beta, atol=1e-23)

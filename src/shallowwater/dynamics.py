@@ -1,40 +1,19 @@
 import numpy as np
-from .operators import (
-    avg_center_to_u, avg_center_to_v,
-    avg_u_to_center, avg_v_to_center,
-    grad_x_on_u, grad_y_on_v,
-    v_on_u, u_on_v,
-    divergence, laplacian_u, laplacian_v,
-)
-from .bathymetry import center_depth, depth_on_u, depth_on_v
+from . import operators, channel
+from .bathymetry import center_depth
 
 
 def _curl_on_center_local(u: np.ndarray, v: np.ndarray, dx: float, dy: float) -> np.ndarray:
-    """
-    Relative vorticity zeta = d_x v - d_y u on cell centers (Ny, Nx),
-    from C-grid u (Ny, Nx+1) and v (Ny+1, Nx).
-    """
-    Ny, Nx1 = u.shape
-    Ny1, Nx = v.shape
-
-    dv_dx = np.zeros_like(v)
-    dv_dx[:, 1:Nx] = (v[:, 1:Nx] - v[:, 0:Nx-1]) / dx
-    dv_dx[:, 0] = dv_dx[:, 1]
-    dv_dx[:, -1] = dv_dx[:, -2]
-    dv_dx_c = 0.5 * (dv_dx[0:Ny, :] + dv_dx[1:Ny1, :])
-
-    du_dy = np.zeros_like(u)
-    du_dy[1:Ny, :] = (u[1:Ny, :] - u[0:Ny-1, :]) / dy
-    du_dy[0, :] = du_dy[1, :]
-    du_dy[-1, :] = du_dy[-2, :]
-    du_dy_c = 0.5 * (du_dy[:, 0:Nx] + du_dy[:, 1:Nx1])
-
-    return dv_dx_c - du_dy_c
+    """Use collocated corner derivatives for closed-basin nonlinear vorticity."""
+    return operators.curl_on_center(u, v, dx, dy)
 
 
-def enforce_bcs(u, v):
-    u[:, 0] = 0.0
-    u[:, -1] = 0.0
+def enforce_bcs(u, v, periodic_x=False):
+    if periodic_x:
+        u[:, -1] = u[:, 0]
+    else:
+        u[:, 0] = 0.0
+        u[:, -1] = 0.0
     v[0, :] = 0.0
     v[-1, :] = 0.0
 
@@ -56,7 +35,8 @@ def tendencies(state, t, grid, params, forcing_fn, hooks=None):
     u = state["u"].copy()
     v = state["v"].copy()
 
-    enforce_bcs(u, v)
+    enforce_bcs(u, v, grid.periodic_x)
+    op = channel if grid.periodic_x else operators
 
     f_out = forcing_fn(t, grid, params)
     if isinstance(f_out, tuple) and len(f_out) == 4:
@@ -70,11 +50,11 @@ def tendencies(state, t, grid, params, forcing_fn, hooks=None):
     # Background depth on eta-, u-, and v-points. params.H can be scalar,
     # a length-Nx x-profile, or a full (Ny, Nx) array.
     Hc = center_depth(grid, params.H)
-    H_u0 = depth_on_u(grid, params.H)
-    H_v0 = depth_on_v(grid, params.H)
+    H_u0 = op.avg_center_to_u(Hc)
+    H_v0 = op.avg_center_to_v(Hc)
 
-    eta_u = avg_center_to_u(eta)
-    eta_v = avg_center_to_v(eta)
+    eta_u = op.avg_center_to_u(eta)
+    eta_v = op.avg_center_to_v(eta)
     H_u_full = H_u0 + eta_u
     H_v_full = H_v0 + eta_v
 
@@ -100,30 +80,31 @@ def tendencies(state, t, grid, params, forcing_fn, hooks=None):
     # Continuity: eta_t = -div(H u, H v) + Q.
     Fx = H_u_flux * u
     Fy = H_v_flux * v
-    deta_dt = -divergence(Fx, Fy, grid.dx, grid.dy) + Q_eta
+    deta_dt = -op.divergence(Fx, Fy, grid.dx, grid.dy) + Q_eta
 
     f_u = coriolis_on_u(grid, params)
     f_v = coriolis_on_v(grid, params)
-    v_u = v_on_u(v)
-    u_v = u_on_v(u)
+    v_u = op.v_on_u(v)
+    u_v = op.u_on_v(u)
 
-    if params.linear:
-        d_etadx_u = grad_x_on_u(eta_total, grid.dx)
-        d_etady_v = grad_y_on_v(eta_total, grid.dy)
+    if params.linear or not params.momentum_advection:
+        d_etadx_u = op.grad_x_on_u(eta_total, grid.dx)
+        d_etady_v = op.grad_y_on_v(eta_total, grid.dy)
         denom_u = params.rho * H_u_mom
         denom_v = params.rho * H_v_mom
         du_dt = f_u * v_u - params.g * d_etadx_u + (taux_u / denom_u) - params.r * u
         dv_dt = -f_v * u_v - params.g * d_etady_v + (tauy_v / denom_v) - params.r * v
     else:
-        Uc = avg_u_to_center(u)
-        Vc = avg_v_to_center(v)
-        zeta_c = _curl_on_center_local(u, v, grid.dx, grid.dy)
+        Uc = op.avg_u_to_center(u)
+        Vc = op.avg_v_to_center(v)
+        zeta_c = (channel.curl_on_center(u, v, grid.dx, grid.dy) if grid.periodic_x
+                  else _curl_on_center_local(u, v, grid.dx, grid.dy))
         K_c = 0.5 * (Uc * Uc + Vc * Vc)
         S_c = params.g * eta_total + K_c
-        dSdx_u = grad_x_on_u(S_c, grid.dx)
-        dSdy_v = grad_y_on_v(S_c, grid.dy)
-        qabs_u = avg_center_to_u(zeta_c) + f_u
-        qabs_v = avg_center_to_v(zeta_c) + f_v
+        dSdx_u = op.grad_x_on_u(S_c, grid.dx)
+        dSdy_v = op.grad_y_on_v(S_c, grid.dy)
+        qabs_u = op.avg_center_to_u(zeta_c) + f_u
+        qabs_v = op.avg_center_to_v(zeta_c) + f_v
 
         qmax = float(getattr(params, "qmax", 0.0))
         if qmax > 0.0:
@@ -137,8 +118,8 @@ def tendencies(state, t, grid, params, forcing_fn, hooks=None):
 
     Ah = float(getattr(params, "Ah", 0.0))
     if Ah > 0.0:
-        du_dt += Ah * laplacian_u(u, grid.dx, grid.dy)
-        dv_dt += Ah * laplacian_v(v, grid.dx, grid.dy)
+        du_dt += Ah * op.laplacian_u(u, grid.dx, grid.dy)
+        dv_dt += Ah * op.laplacian_v(v, grid.dx, grid.dy)
 
     if hooks:
         add_eta = np.zeros_like(eta)
@@ -156,4 +137,5 @@ def tendencies(state, t, grid, params, forcing_fn, hooks=None):
         du_dt += add_u
         dv_dt += add_v
 
+    enforce_bcs(du_dt, dv_dt, grid.periodic_x)
     return deta_dt, du_dt, dv_dt

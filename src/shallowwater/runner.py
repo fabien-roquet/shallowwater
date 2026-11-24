@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Sequence, Optional, Dict, Any
-from .dynamics import tendencies
+from .dynamics import tendencies, enforce_bcs
 
 def run_model(
     tmax: float,
@@ -61,6 +61,7 @@ def run_model(
             np.max(np.abs(v0)),
         )
     state = {"eta": eta0.copy(), "u": u0.copy(), "v": v0.copy()}
+    enforce_bcs(state["u"], state["v"], grid.periodic_x)
     t = 0.0
 
     nsteps = int(np.ceil(tmax / dt))

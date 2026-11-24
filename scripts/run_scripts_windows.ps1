@@ -25,7 +25,7 @@ Set-Location $RepoRoot
 
 function Get-ExampleScripts {
     Get-ChildItem -Path "scripts" -Filter "*.py" -File |
-        Where-Object { $_.Name -ne "strip_notebooks.py" } |
+        Where-Object { $_.Name -ne "strip_notebooks.py" -and -not $_.Name.StartsWith("_") } |
         Sort-Object FullName |
         ForEach-Object { $_.FullName }
 }

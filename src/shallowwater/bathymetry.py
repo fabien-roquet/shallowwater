@@ -28,7 +28,11 @@ def center_depth(grid, H):
 
 def depth_on_u(grid, H):
     """Return background depth averaged to u-points, shape (Ny, Nx+1)."""
-    return avg_center_to_u(center_depth(grid, H))
+    depth = center_depth(grid, H)
+    out = avg_center_to_u(depth)
+    if grid.periodic_x:
+        out[:, 0] = out[:, -1] = 0.5 * (depth[:, -1] + depth[:, 0])
+    return out
 
 
 def depth_on_v(grid, H):
