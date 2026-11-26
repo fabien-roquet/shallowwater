@@ -219,16 +219,25 @@ If any of these are false, the scripts should fall back to the pure NumPy implem
 
 ## Tsunami shoaling example
 
-The tsunami-shoaling material demonstrates a long wave crossing from deep water toward a shallow coast.
+Run `python scripts/03_tsunami_shoaling_sponge.py` to generate
+`animations/eta_03_tsunami_shoaling_sponge.gif`. The matching tutorial is
+`notebooks/03_tsunami.ipynb`.
 
-Key ingredients:
+Experiment 03 uses a **4,800 × 4,800 km square domain**, 320 × 320 cells, and a
+20 cm Gaussian source of radius 120 km at x = 1,600 km, y = 2,400 km. The
+4,000 m deep ocean slopes to 80 m over the easternmost 900 km. A seven-hour
+run shows propagation, geometric spreading and shoaling toward the right.
+Weak bottom drag has a **24-hour momentum damping time**; 600 km absorbing
+layers on the west, north and south reduce returning waves. The eastern
+coast remains reflecting, so its maximum height includes reflection as well
+as shoaling. The map keeps equal x/y scales, fixed ±4 cm colours and depth
+contours. A centreline time–distance plot and peak-height profile are saved
+as `experiment_03_shoaling_diagnostics.png`.
 
-- variable bathymetry
-- shallow-water wave speed, `c = sqrt(g H)`
-- shoaling as the wave enters shallower water
-- a sponge layer that damps outgoing waves and reduces reflections
-
-Relevant files:
+Use `--drag-hours 0` to disable bottom drag, `--hours` to set duration,
+`--quick` for a 160 × 160 grid, and `--replot` to redraw a matching saved run.
+`experiment_03_tsunami.npz` and its JSON record bathymetry, heights, times and
+configuration fingerprints. The guided tsunami labs remain separate:
 
 ```text
 labs/02_tsunami_shoaling.md
@@ -238,7 +247,8 @@ src/shallowwater/bathymetry.py
 src/shallowwater/sponge.py
 ```
 
-This is a teaching example for wave propagation and shoaling. It is not a full coastal inundation or wetting-and-drying model.
+This is a teaching example for propagation and shoaling, with no wetting and
+drying or inundation.
 
 ## Bathymetry and wind maps from files
 
@@ -384,44 +394,183 @@ uv run ./scripts/run_scripts_mac.sh scripts/01_wind_gyre.py
 
 Replace `run_scripts_mac.sh` with the Linux or Windows runner as appropriate.
 
-## Experiment 11: smaller Rossby disturbances
+## Experiment 02: gravity waves with and without rotation
 
 ```bash
-python scripts/11_Rossby_wave_propagation.py --case tiny
+python scripts/02_gravity_waves.py
 ```
 
-This adds two full linear shallow-water runs with radius `Ld/10` (31 km),
-resolved with ten cells per radius on an 800 × 600 km regional grid. The
-120-day drag time keeps the slower short-wave evolution visible over 60 days.
-The older `Ld/3`, `Ld`, and `3*Ld` cases remain available with `--case existing`;
-without a case selector the script runs both the old and new cases.
+`eta_02.gif` shows rotation on the left and no rotation on the right, with
+synchronized physical times and one fixed height color scale. Filled contours
+(`contourf`) give smooth colour-band boundaries with 21 fixed levels. Equal-length
+arrows show current direction only, every four cells (16 × 16 per panel).
+Zero and negligible currents are hidden; arrow length does not encode speed.
+Contours are lightened to keep the currents visible. Playback remains at
+**10 fps**, with frames saved every two steps instead of four: physical motion
+is half as fast. The run covers **1.5 days instead of three**, retaining the
+original movie length of about 29 seconds. The separate nonrotating movie and
+previous rotating movie are preserved under `animations/archive/`.
 
-- `eta_11_tiny_eddy.gif` starts from the smaller Gaussian.
-- `eta_11_short_waves.gif` removes initial basin sine modes with `K*Ld < 8`,
-  tapering smoothly to full amplitude at `K*Ld = 10`. Retained total wavelengths
-  are below `0.79*Ld`. The initial rings are a consequence of removing long
-  wavelengths; a positive Gaussian alone cannot meet that restriction.
+Height and C-grid velocities are cached in `experiment_02.npz` and
+`experiment_02b_no_rotation.npz`, with model/parameter fingerprints. Use
+`--replot` to redraw matching histories, `--fps` to adjust playback,
+`--arrow-scale` to control direction-arrow length (smaller means longer), and
+`--arrow-stride` for spacing. `--quick` and `--smoke` provide shorter workflows.
+The comparison JSON records physical times, frame count, playback duration,
+color limits and arrow settings. The notebook calls the same implementation
+and retains the coastline diagnostics.
 
-Use `--variant gaussian` or `--variant short-waves` to compute just one,
-`--replot` to redraw matching saved histories, and `--smoke --frames 3` for a
-short workflow check. Numerical histories and initial-spectrum/Hovmöller plots
-are saved beside the movies. All five experiment-11 movies share the same plotter: kilometre axes, matching
-layout and titles, fixed ±0.08 m color limits, and contours every 0.01 m.
-Redraw the three older cases from saved histories with
-`python scripts/11_Rossby_wave_propagation.py --case existing --replot`.
-The cutoff applies to initial height, using its sine extension across basin
-walls. It is a cutoff in total wavenumber, not both component wavenumbers.
-The stationary spatial mean is removed from the display; varying Coriolis
-parameter, boundaries and shallow-water adjustment can later introduce other
-scales. These are regional cases, rather than a domain-size-matched comparison
-to the older animations.
+The public `animate_eta` helper also supports single-panel velocity overlays
+through `velocity_arrows=True` and optional `arrow_stride`, `arrow_reference`
+and `arrow_scale`. Save `out_vars=("eta", "u", "v")` when running the model.
+Existing eta-only callers retain their original behavior by default.
 
-For a local balanced wave, `omega = -beta*k/(k²+l²+Ld⁻²)`. Broader waves have
-faster westward zonal phase propagation, but group propagation can be eastward
-or westward. The alternating lobes and chevrons are features of linear PV
-wave dynamics and dispersion. In the short-wave limit, shrinking the eddy
-slows its evolution. The notebook includes the dispersion and group-velocity
-formulas and calls the same new implementation as the script.
+## Experiment 06: comparing seiche modes
+
+`eta_06.gif` places `(m,n)=(1,0)` on the left and `(1,1)` on the right,
+at common physical times and with a shared ±0.10 m scale. The left mode
+varies only along x; the right mode has structure in both directions.
+Their periods are about 11.22 and 7.93 hours respectively.
+
+```bash
+python scripts/06_seiche.py
+python scripts/06_seiche.py --modes 0,0 1,0 0,1 1,1
+```
+
+The original basin, grid, depth and forcing-free, frictionless, nonrotating
+linear equations are unchanged. Runs cover three periods of the slowest
+selected oscillating mode, giving 33.65 hours for the default pair.
+The optional `(0,0)` mode is a stationary uniform offset; spatial means are
+retained so it remains visible. A stationary-only selection uses the `(1,0)`
+period as its observation window. Mode histories and configuration/diagnostic
+JSON are cached. Use `--replot` to redraw matching simulations; the notebook
+calls the same code.
+
+## Experiment 10: adjustment toward a near-steady vortex
+
+```bash
+python scripts/10_geostrophic_adjustment.py
+```
+
+`eta_10.gif` now uses coastal momentum friction to absorb returning waves,
+instead of the former uniform three-day Rayleigh drag. The damping increases
+quadratically toward all four walls across an 800 km band, with a one-hour
+limiting coastal time. The basin centre is undamped, and height is not directly
+relaxed, preserving mass while allowing the balanced circulation to remain.
+The original f-plane, Gaussian bump, partial geostrophic initialization and
+160 × 160 grid are retained. The run extends to eight inertial periods
+(5.82 days) to show the nearly settled state.
+
+At default resolution, the final height maximum is about 0.376 m. Over the
+last inertial period, interior height variability is about 0.008% of its RMS
+anomaly, with pressure/Coriolis residual acceleration about 0.0025% of the
+Coriolis scale. This is evolved model output, not a prescribed equilibrium.
+Diagnostics refer to the undamped interior; exact geostrophic balance is not
+imposed within the coastal friction band.
+
+Use `--periods`, `--sponge-hours` and `--sponge-width-km` to explore damping,
+`--quick` or `--smoke` for shorter workflows, and `--replot` to redraw matching
+saved height/velocity histories. The notebook calls the same implementation.
+`experiment_10_adjustment_diagnostics.png` shows the energy and balance
+histories; `experiment_10_friction.png` shows the damping field. The configuration
+and final diagnostics are recorded beside the numerical cache. The sponge
+applies only nonpositive kinetic-energy work and leaves the mass tendency
+unchanged apart from the model's original continuity equation.
+
+## Experiment 11: linear and nonlinear Rossby eddies
+
+```bash
+python scripts/11_Rossby_wave_propagation.py
+```
+
+All five Gaussian movies now show **linear SW on the left and full nonlinear SW
+on the right**, using identical initial fields, grids, drag and time steps:
+
+- `eta_11_large_eddy.gif`: R = 3 Ld.
+- `eta_11_medium_eddy.gif`: R = Ld.
+- `eta_11_small_eddy.gif`: R = Ld/3.
+- `eta_11_tiny_eddy.gif`: R = Ld/10, positive height, anticyclonic.
+- `eta_11_tiny_eddy_cyclonic.gif`: the exact sign reversal of the tiny initial
+  height and geostrophic velocities; all other settings match the anticyclone.
+
+The source Gaussian amplitude is 15 cm and Ld = 313 km; the older three
+initial height fields have their basin mean removed. The three older cases retain
+the 4000 × 3000 km basin, 192 × 128 grid, 15-day drag and 20-day duration. Tiny
+cases retain the 800 × 600 km basin, 256 × 192 grid, 120-day drag and 60-day run.
+The new nonlinear branch uses `linear=False`, retaining both momentum and
+thickness advection; the existing linear reference uses `linear=True`.
+The older velocity initialization retains its 0.95 balance factor and six-cell
+wall taper; the tiny cases retain factor 1 and no taper. No nonlinear
+gradient-wind correction is applied.
+In particular, the tiny anticyclone is deliberately permitted to adjust under
+centrifugal acceleration. Its cyclone counterpart illustrates the sign asymmetry.
+The f-plane gradient-wind limit for the specified positive Gaussian profile is
+A ≤ f² R²/(8g) = 12.5 cm at R = Ld/10. This is a balance restriction for that
+profile, not a prediction of numerical failure or complete vortex destruction.
+With the default settings, the nonlinear anticyclonic peak falls from about
+15 cm to 12.5 cm during the first day; the cyclone deepens to about 17 cm.
+Both nonlinear vortices remain compact through day 60, with southward
+anticyclonic and northward cyclonic deflection. The initial shape adjusts;
+the anticyclone is not destroyed outright.
+
+The first three days of each tiny movie use finer saved-time spacing (about an
+hour), followed by the original later spacing. The current sampling regime is
+stated in the title; both panels always share the same physical time. Numerical
+integration uses a fixed small time step throughout. Continuations at saved
+integer steps are checked against uninterrupted integration.
+
+All panels share kilometre axes, a fixed ±0.08 m height scale, and contours every
+0.01 m. Each case saves separate `experiment_11_*_linear.npz` and
+`experiment_11_*_nonlinear.npz` histories with configuration and diagnostic JSON.
+Compatible old tiny linear histories can supply later frames; missing early
+frames are integrated, never interpolated. Caches include the exact initial
+fields, saved steps, parameters, solver source and experiment fingerprints.
+`experiment_11_*_comparison.png` shows peak signed height, early adjustment and
+the relative RMS height difference; the matching JSON preserves those series.
+Signed height is eta for anticyclones and minus eta for the cyclone, and its
+maximum is not a material-vortex tracker.
+
+Select one case with `--case large`, `medium`, `small`, `tiny` or `tiny-cyclonic`;
+`--case existing` runs only the three older radii. Use `--replot` for matching
+saved pairs, `--quick` for lower spatial resolution, or `--smoke --frames 4` for
+a short workflow check. `--days` and `--frames` control the tiny runs. For example:
+
+```bash
+python scripts/11_Rossby_wave_propagation.py --case tiny-cyclonic
+python scripts/11_Rossby_wave_propagation.py --case existing --replot
+```
+
+The filtered-wave GIF remains removed from the default family. Its diagnostic
+can still be explicitly requested with `--variant short-waves`; `--variant both`
+adds it to the requested Gaussian comparisons. That optional initial-height
+filter removes basin sine modes with K Ld < 8, so retained total wavelengths
+are below 0.79 Ld. The restriction applies at initialization and does not
+suppress later scale coupling. The notebook calls the same comparison code and
+retains the linear dispersion/group-velocity explanation.
+
+## Experiment 12: reduced-gravity wind-gyre comparison
+
+```bash
+python scripts/12_wind_gyre_reduced_gravity.py
+```
+
+`eta_12.gif` now shows linear SW on the left and nonlinear SW on the right,
+with one common fixed height scale and contour levels. Both runs start at rest
+and use the original 3000 × 3000 km basin, 128 × 128 grid, H = 500 m,
+g′ = 0.2 m/s², f₀ = 10⁻⁴ s⁻¹, β = 2 × 10⁻¹¹ m⁻¹ s⁻¹, r = 3 × 10⁻⁷ s⁻¹,
+Ah = 500 m²/s and wind-stress amplitude 0.1 N/m². They run for 730 days.
+The conservative nonlinear-case CFL bound is used for both, with 121 common
+physical output times. The `linear` flag is the only differing model parameter.
+
+`--replot` redraws matching saved numerical histories. `--case linear` or
+`--case nonlinear` computes one branch without rendering, and the default
+`--case both` assembles the comparison. Use `--quick`, `--smoke`, `--days`,
+`--frames`, `--output-dir`, or `--progress` as needed. Caches contain solver,
+experiment and parameter fingerprints. Kinetic-energy histories and the shared
+color scale/times are saved as comparison diagnostics. The notebook calls the
+same implementation and retains the wind and coastline diagnostics.
+The former separate movies are preserved under `animations/archive/` when the
+comparison is first rendered; `eta_12b_nonlinear.gif` is no longer generated.
 
 ## Experiments 13 and 14: forced jets and double-gyre adjustment
 
@@ -656,3 +805,52 @@ wind, drag, and viscosity. With `linear=True`, momentum advection is already
 absent regardless of this flag. The original linear/nonlinear defaults remain
 unchanged. Wall-normal momentum tendencies are now constrained at each RK stage,
 so saved wall velocities obey the same boundary condition used for fluxes.
+
+## Experiment 15: inertial motion and inertia–gravity waves
+
+```bash
+python scripts/15_inertial_waves.py
+```
+
+This family uses the existing linear shallow-water model on an f-plane, with
+periodic x, impermeable y walls, no forcing, no drag and no viscosity. It
+illustrates horizontal inertial motion and Poincaré waves in a depth-averaged
+layer; it does not represent the vertical structure of three-dimensional
+inertial waves. The parameters are H = 100 m, g = 9.81 m s⁻², and
+|f| = 10⁻⁴ s⁻¹, giving a reference inertial period Tf = 17.45 hours and
+deformation radius Ld = 313 km.
+
+- `velocity_15_inertial_rotation.gif`: a near-inertial standing mode with
+  K Ld = 0.2, compared between hemispheres. Arrows show model velocities; the
+  lower panels trace velocity space, showing clockwise northern and
+  anticlockwise southern rotation. The dotted circle is the analytical pure
+  inertial limit, not an additional numerical run or a particle trajectory.
+  The finite-wavelength mode has frequency 1.02 |f| and is slightly elliptical.
+- `eta_15_poincare_regimes.gif`: the same initial velocity amplitude at
+  K Ld = 0.2, 1 and 5. The channel widths differ to set these scales; all panels
+  use the same physical clock, velocity-arrow scale and fixed height scale.
+  The period decreases and the motion becomes more gravity dominated as
+  omega² = f² + g H K². `experiment_15_dispersion.png` shows the dispersion
+  relation and numerical velocity time series.
+- `eta_15_wave_packet.gif`: a localized meridional velocity packet, with and
+  without rotation. It starts with zero height, zonal velocity and linear PV,
+  so it excites the wave branch rather than an initially balanced eddy.
+  Height maps, arrows and Hovmöller plots show splitting, propagation and the
+  oscillatory response. The run ends before the main packet reaches the walls;
+  faint dispersive tails may travel faster than the central packet.
+
+All flows are independent of x, avoiding complications from zonal propagation
+and Kelvin-wave excitation. Uniform cross-wall inertial flow is not imposed.
+The standing mode has v = V sin(pi y/Ly) initially, with u = eta = 0, and
+satisfies the wall boundary conditions exactly. Spatial C-grid averaging
+slightly changes its frequency; tests compare to the exact discrete mode and
+check hemisphere symmetry, mass and energy. Rotation also limits the time step
+so a coarse gravity-wave CFL cannot leave inertial oscillations unresolved.
+
+Use `--case rotation`, `--case regimes` or `--case packet` to run one movie;
+`--quick` reduces meridional resolution, `--smoke` exercises the full workflow
+briefly, and `--replot` reuses matching saved numerical histories. Each case
+writes a numerical `.npz` history and `.json` configuration/diagnostics; caches
+include solver and experiment fingerprints. The matching notebook calls this
+same script. See [Price's Coriolis tutorial, part 2](https://ocw.mit.edu/courses/res-12-001-topics-in-fluid-dynamics-fall-2024/mitres_12_001_f24_essay3_pt2.pdf)
+for the shallow-water inertia–gravity dispersion relation and inertial limit.

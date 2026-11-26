@@ -1,200 +1,177 @@
 #!/usr/bin/env python3
-"""Converted tutorial script.
-
-Run from the repository root or from the scripts/ directory. Generated movies
-are written to animations/, which is intentionally ignored by git.
-"""
+"""Tsunami shoaling in a square ocean with weak bottom drag and outer sponges."""
+from dataclasses import asdict
+import hashlib
+import inspect
+import json
 from pathlib import Path
 import sys
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent
-SRC_DIR = PROJECT_ROOT / "src"
-ANIMATION_DIR = PROJECT_ROOT / "animations"
-ANIMATION_DIR.mkdir(exist_ok=True)
-
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT/'src') not in sys.path:
+    sys.path.insert(0, str(ROOT/'src'))
 
 import matplotlib
-matplotlib.use("Agg")
-
-
-# Source notebook: 03_tsunami_shoaling_sponge.ipynb
-
-
-# # Tsunami shoaling with variable depth and a sponge layer
-#
-# This notebook is a kid-friendly tsunami experiment. The model has a deep ocean on the west side and a shallow coast on the east side. A broad sea-surface bump travels toward the coast. As the water gets shallower, the wave slows down and its height grows.
-#
-# The sponge layer near the west boundary absorbs the wave travelling away from the coast, which reduces reflections.
-#
-# This is a demonstration of **shoaling**, not a real tsunami warning or inundation model.
-
-
-# %% Cell 1
-import numpy as np
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.colors import BoundaryNorm
+import numpy as np
 
-from shallowwater import (
-    ModelParams, make_grid, zero_forcing, setup_initial_state,
-    compute_dt_cfl, run_model, animate_eta,
-    shelf_bathymetry, wave_speed, make_sponge_hook, sponge_mask_eta,
-)
-
-
-# ## 1. Build an ocean with a shallow coast
-#
-# The coast is on the right/east side. The water is deep on the left/west side and becomes shallow near the coast.
+from shallowwater import (ModelParams, make_grid, setup_initial_state, zero_forcing,
+                          run_model, compute_dt_cfl, shelf_bathymetry, sponge_mask_eta)
+from shallowwater.operators import avg_center_to_u, avg_center_to_v
+from _experiment_tools import model_fingerprint
 
 
-# %% Cell 3
-Nx, Ny = 160, 36
-Lx, Ly = 2_400e3, 500e3
-grid = make_grid(Nx, Ny, Lx, Ly)
-
-H_deep = 4000.0      # deep ocean depth [m]
-H_coast = 80.0       # shallow coastal depth [m]
-shelf_width = 900e3  # width of the sloping shelf [m]
-
-H = shelf_bathymetry(
-    grid, H_deep=H_deep, H_coast=H_coast,
-    shelf_width=shelf_width, coast="east", power=1.4,
-)
-
-params = ModelParams(H=H, f0=0.0, beta=0.0, r=0.0, linear=True)
-
-
-# %% Cell 4
-fig, ax1 = plt.subplots(figsize=(8, 3))
-x_km = grid.x_c / 1000
-ax1.plot(x_km, H[Ny//2, :])
-ax1.invert_yaxis()
-ax1.set_xlabel("distance east [km]")
-ax1.set_ylabel("depth H [m]")
-ax1.set_title("Ocean bottom: deep ocean to shallow coast")
-ax1.grid(True)
-plt.close(fig)
-
-fig, ax2 = plt.subplots(figsize=(8, 3))
-c = wave_speed(grid, params)
-ax2.plot(x_km, c[Ny//2, :])
-ax2.set_xlabel("distance east [km]")
-ax2.set_ylabel("wave speed sqrt(gH) [m/s]")
-ax2.set_title("Long waves are fastest in deep water")
-ax2.grid(True)
-plt.close(fig)
+def setup_experiment(args):
+    n = 32 if args.smoke else (160 if args.quick else 320)
+    grid = make_grid(n, n, 4.8e6, 4.8e6)
+    depth = shelf_bathymetry(grid, H_deep=4000., H_coast=80.,
+                            shelf_width=900e3, coast='east', power=1.4)
+    # Linear Rayleigh bottom drag damps momentum, not surface height directly.
+    params = ModelParams(H=depth, f0=0., beta=0.,
+                         r=0. if args.drag_hours == 0 else 1/(args.drag_hours*3600), linear=True)
+    duration = (.1 if args.smoke else args.hours)*3600
+    steps = int(np.ceil(duration/compute_dt_cfl(grid, params, cfl=.45)))
+    dt = duration/steps
+    frames = min(args.frames, 5) if args.smoke else args.frames
+    stride = max(1, int(np.ceil(steps/(frames-1))))
+    return grid, params, duration, dt, stride
 
 
-# ## 2. Initial tsunami bump
-#
-# The initial bump is a simplified earthquake displacement of the sea surface. It starts in deep water and travels both east and west. The east-going wave heads toward the coast.
-
-
-# %% Cell 6
 def tsunami_initial_condition(grid, params):
-    return setup_initial_state(
-        grid, params, mode="gaussian_bump",
-        amp=0.20,          # initial height [m]
-        R=120e3,           # bump radius [m]
-        x0=450e3,          # start in the deep ocean
-        y0=0.5 * grid.Ly,
-    )
-
-eta0, u0, v0 = tsunami_initial_condition(grid, params)
-
-plt.figure(figsize=(8, 3))
-plt.pcolormesh(grid.x_c/1000, grid.y_c/1000, eta0, shading="auto")
-plt.colorbar(label="eta [m]")
-plt.xlabel("x [km]")
-plt.ylabel("y [km]")
-plt.title("Initial sea-surface displacement")
-plt.close("all")
+    return setup_initial_state(grid, params, mode='gaussian_bump', amp=.20,
+                               R=120e3, x0=1600e3, y0=.5*grid.Ly)
 
 
-# ## 3. Add a sponge layer
-#
-# The sponge layer is strongest at the west boundary and fades into the interior. It damps waves so they do not reflect as strongly from that boundary.
+def absorbing_boundaries(grid):
+    """Precompute absorption on the three outer edges; leave the east coast alone."""
+    mask = sponge_mask_eta(grid, width=600e3, sides=('west', 'south', 'north'), power=2.)
+    sigma = mask/900.
+    sigma_u, sigma_v = avg_center_to_u(sigma), avg_center_to_v(sigma)
+    def hook(state, time, grid, params):
+        return -sigma*state['eta'], -sigma_u*state['u'], -sigma_v*state['v']
+    return hook, mask
 
 
-# %% Cell 8
-sponge_width = 300e3
-sponge = make_sponge_hook(width=sponge_width, tau=900.0, sides=("west",), power=2.0)
-mask = sponge_mask_eta(grid, width=sponge_width, sides=("west",), power=2.0)
-
-plt.figure(figsize=(8, 2.5))
-plt.pcolormesh(grid.x_c/1000, grid.y_c/1000, mask, shading="auto", vmin=0, vmax=1)
-plt.colorbar(label="sponge strength")
-plt.xlabel("x [km]")
-plt.ylabel("y [km]")
-plt.title("Western sponge layer")
-plt.close("all")
-
-
-# ## 4. Run the model
-#
-# The time step is chosen from the fastest wave speed, which occurs in the deepest water.
-
-
-# %% Cell 10
-dt = compute_dt_cfl(grid, params, cfl=0.45)
-tmax = 4.0 * 3600.0
-save_every = max(1, int((5 * 60) / dt))  # save about every 5 minutes
-
-print(f"dt = {dt:.1f} s, save_every = {save_every} steps")
-
-out = run_model(
-    tmax, dt, grid, params, zero_forcing, tsunami_initial_condition,
-    save_every=save_every, hooks=[sponge], show_progress=True,
-)
-
-
-# ## 5. Watch the wave
-#
-# Run the animation cell. Look for the wave slowing and growing near the shallow coast.
-
-
-# %% Cell 12
-anim = animate_eta(
-    out, grid, interval=120, title="Tsunami shoaling experiment",
-    contours=True, show_colorbar=True, remove_mean=False,
-)
-anim.save(str(ANIMATION_DIR / "eta_03_tsunami_shoaling_sponge.gif"), fps=10)
+def run_case(args):
+    grid, params, duration, dt, stride = setup_experiment(args)
+    sponge, mask = absorbing_boundaries(grid)
+    source = '\n'.join(inspect.getsource(fn) for fn in
+                       (setup_experiment, tsunami_initial_condition, absorbing_boundaries))
+    parameters = asdict(params)
+    parameters.pop('H')
+    config = dict(Nx=grid.Nx, Ny=grid.Ny, Lx=grid.Lx, Ly=grid.Ly,
+                  parameters=parameters, depth_sha256=hashlib.sha256(params.H.tobytes()).hexdigest(),
+                  H_deep=4000., H_coast=80., shelf_width_m=900e3, shelf_power=1.4,
+                  amplitude_m=.20, radius_m=120e3, source_x_m=1600e3, source_y_m=grid.Ly/2,
+                  sponge_sides=['west', 'south', 'north'], sponge_width_m=600e3,
+                  sponge_tau_seconds=900., sponge_power=2., duration=duration, dt=dt,
+                  save_every=stride, solver_fingerprint=model_fingerprint(),
+                  experiment_fingerprint=hashlib.sha256(source.encode()).hexdigest())
+    path = args.output_dir/'experiment_03_tsunami.npz'
+    meta = path.with_suffix('.json')
+    matching = path.exists() and meta.exists() and json.loads(meta.read_text())['configuration'] == config
+    if args.replot and not matching:
+        raise ValueError('No matching tsunami history; run without --replot first.')
+    if matching:
+        with np.load(path, allow_pickle=False) as saved:
+            data = {key: saved[key] for key in ('eta', 'time')}
+        print('03: reuse saved simulation', flush=True)
+    else:
+        print(f'03: {grid.Nx} × {grid.Ny}, {duration/3600:g} h, bottom-drag time {args.drag_hours:g} h', flush=True)
+        out = run_model(np.nextafter(duration, 0.), dt, grid, params, zero_forcing,
+                        tsunami_initial_condition, save_every=stride, hooks=[sponge], out_vars=('eta',))
+        data = {key: np.asarray(out[key]) for key in ('time', 'eta')}
+        if not all(np.isfinite(a).all() for a in data.values()):
+            raise RuntimeError('Non-finite tsunami solution.')
+        np.savez_compressed(path, **data, H=params.H, x=grid.x_c, y=grid.y_c)
+    meta.write_text(json.dumps(dict(configuration=config), indent=2)+'\n')
+    return grid, params, data, mask
 
 
-# ## 6. Measure how the wave grows
-#
-# Here we compute the largest absolute surface height seen at each x-position during the simulation.
+def render(args, grid, params, data, mask):
+    levels = np.linspace(-.04, .04, 17)
+    fig, ax = plt.subplots(figsize=(8, 7.5), constrained_layout=True)
+    extent = (0, grid.Lx/1e3, 0, grid.Ly/1e3)
+    norm = BoundaryNorm(levels, plt.get_cmap('RdBu_r').N)
+    image = ax.imshow(data['eta'][0], origin='lower', extent=extent,
+                      cmap='RdBu_r', norm=norm, aspect='equal')
+    fig.colorbar(image, ax=ax, label='Surface height η [m]', extend='both',
+                 ticks=np.linspace(-.04, .04, 5), shrink=.9)
+    X, Y = np.meshgrid(grid.x_c/1e3, grid.y_c/1e3)
+    bathy = ax.contour(X, Y, params.H, levels=[100, 500, 2000], colors='0.35',
+                       linestyles='--', linewidths=.65, alpha=.7)
+    ax.clabel(bathy, fmt=lambda h: f'{h:.0f} m', fontsize=8)
+    ax.contour(X, Y, mask, levels=[.001], colors='0.5', linewidths=.6, linestyles=':')
+    ax.set(xlabel='x [km]', ylabel='y [km]')
+    contours = [None]
+    def update(i):
+        image.set_data(data['eta'][i])
+        if contours[0] is not None:
+            contours[0].remove()
+        contours[0] = ax.contour(X, Y, data['eta'][i], levels=np.linspace(-.04, .04, 9),
+                                  colors='k', linewidths=.35, alpha=.3)
+        ax.set_title(f'Tsunami shoaling toward the eastern coast\n'
+                     f't = {data["time"][i]/3600:.2f} h; '+
+                     (f'bottom-drag time = {args.drag_hours:g} h' if args.drag_hours else 'no bottom drag'))
+    animation = FuncAnimation(fig, update, frames=len(data['time']), interval=1000/args.fps, blit=False)
+    animation.save(str(args.output_dir/'eta_03_tsunami_shoaling_sponge.gif'),
+                    writer='pillow', fps=args.fps, dpi=120)
+    update(int(np.argmin(abs(data['time']-5.5*3600))))
+    fig.savefig(args.output_dir/'experiment_03_shoaling_frame.png', dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    render_diagnostics(args, grid, params, data)
 
 
-# %% Cell 14
-eta_stack = np.stack(out["eta"], axis=0)
-max_abs_eta_x = np.max(np.abs(eta_stack), axis=(0, 1))
+def render_diagnostics(args, grid, params, data):
+    # A maximum over time includes coast reflection; it is not a pure incident-wave gain.
+    peak = np.max(np.abs(data['eta'][:, grid.Ny//2, :]), axis=0)
+    travel = np.cumsum(grid.dx/np.sqrt(params.g*params.H[grid.Ny//2]))
+    source = np.argmin(abs(grid.x_c-1600e3))
+    arrival = (travel-travel[source])/3600
+    fig, axes = plt.subplots(2, 1, figsize=(9, 6), constrained_layout=True)
+    axes[0].plot(grid.x_c/1e3, peak, label='Maximum |η| on the centreline')
+    axes[0].set(xlabel='x [km]', ylabel='Surface height [m]', title='Propagation, spreading and coastal amplification')
+    axes[0].axvline(3900, color='.5', linestyle=':', label='Shelf begins')
+    axes[0].legend(fontsize=9)
+    axdepth = axes[0].twinx()
+    axdepth.plot(grid.x_c/1e3, params.H[grid.Ny//2], color='.5', linestyle='--')
+    axdepth.set(ylabel='Depth [m]', ylim=(4200, 0))
+    limit = .04
+    axes[1].pcolormesh(grid.x_c/1e3, data['time']/3600,
+                       data['eta'][:, grid.Ny//2], cmap='RdBu_r', vmin=-limit, vmax=limit, shading='auto')
+    east = grid.x_c >= 1600e3
+    axes[1].plot(grid.x_c[east]/1e3, arrival[east], 'k--', linewidth=.8, label='Direct-wave travel time ∫ dx/√(gH)')
+    axes[1].set(xlabel='x [km]', ylabel='Time [h]', ylim=(0, data['time'][-1]/3600))
+    axes[1].legend(fontsize=8)
+    fig.savefig(args.output_dir/'experiment_03_shoaling_diagnostics.png', dpi=150)
+    plt.close(fig)
 
-fig, ax1 = plt.subplots(figsize=(8, 3.5))
-ax1.plot(x_km, max_abs_eta_x, label="maximum wave height")
-ax1.set_xlabel("distance east [km]")
-ax1.set_ylabel("max |eta| [m]")
-ax1.grid(True)
-ax1.legend(loc="upper left")
 
-ax2 = ax1.twinx()
-ax2.plot(x_km, H[Ny//2, :], linestyle="--", label="depth")
-ax2.invert_yaxis()
-ax2.set_ylabel("depth H [m]")
-ax2.legend(loc="upper right")
-plt.title("Wave height grows where the ocean gets shallow")
-plt.close("all")
+def make_parser():
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--hours', type=float, default=7.)
+    parser.add_argument('--drag-hours', type=float, default=24., help='Momentum damping time; 0 disables drag.')
+    parser.add_argument('--frames', type=int, default=141)
+    parser.add_argument('--fps', type=float, default=10.)
+    parser.add_argument('--output-dir', type=Path, default=ROOT/'animations')
+    parser.add_argument('--quick', action='store_true')
+    parser.add_argument('--smoke', action='store_true')
+    parser.add_argument('--replot', action='store_true')
+    return parser
 
 
-# ## 7. Try experiments
-#
-# Change one thing at a time and run the notebook again.
-#
-# Questions to test:
-#
-# 1. What happens if `H_coast` is 300 m instead of 80 m?
-# 2. What happens if `H_coast` is 30 m?
-# 3. What happens if `shelf_width` is larger or smaller?
-# 4. What happens if you remove the sponge hook?
-# 5. Why is this still not a real flooding model?
+def run_experiment(args):
+    if min(args.hours, args.fps) <= 0 or args.drag_hours < 0 or args.frames < 2:
+        raise ValueError('Use positive duration/fps, nonnegative drag time and at least two frames.')
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    grid, params, data, mask = run_case(args)
+    render(args, grid, params, data, mask)
+    return grid, params, data
+
+
+if __name__ == '__main__':
+    run_experiment(make_parser().parse_args())

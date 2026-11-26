@@ -74,11 +74,20 @@ def animate_eta(out: dict,
                 contour_colors: Union[str, Sequence[str]] = "k",
                 contour_alpha: float = 0.8,
                 contour_linewidths: float = 0.6,
-                frames: Optional[Sequence[int]] = None  # 4) only plot these time indices
+                frames: Optional[Sequence[int]] = None,  # 4) only plot these time indices
+                velocity_arrows: bool = False,
+                arrow_stride: int = 6,
+                arrow_reference: Optional[float] = None,
+                arrow_scale: Optional[float] = None
                 ) -> _EtaAnimation:
     """
-    Create a 2D animation of eta snapshots over time, with options for
-    mean-removal, diverging colormap, contours, and frame subsetting.
+    Create a 2D animation of eta snapshots over time.
+
+    Optional velocity arrows use saved C-grid u/v, averaged to eta centres.
+    arrow_stride sets the grid spacing in cells. arrow_reference is the key's
+    speed in m/s; arrow_scale is speed per axes width. Defaults are chosen once
+    from the selected velocity history, so arrow lengths remain comparable
+    throughout the movie. Existing eta-only callers need no velocity fields.
     """
     # --- Stack eta and time vector ---
     eta_stack = _stack_eta(out)            # (T, Ny, Nx)
@@ -117,6 +126,34 @@ def animate_eta(out: dict,
         if vmin == vmax:
             vmin -= 1e-6; vmax += 1e-6
 
+    # Validate and centre optional C-grid velocities before allocating a figure.
+    velocity = None
+    if velocity_arrows:
+        if 'u' not in out or 'v' not in out:
+            raise ValueError("velocity_arrows=True requires saved 'u' and 'v' fields.")
+        if not isinstance(arrow_stride, (int, np.integer)) or arrow_stride < 1:
+            raise ValueError('arrow_stride must be a positive integer.')
+        u, v = np.asarray(out['u']), np.asarray(out['v'])
+        if u.ndim == 2:
+            u = u[None, ...]
+        if v.ndim == 2:
+            v = v[None, ...]
+        if u.shape != (T, Ny, Nx+1) or v.shape != (T, Ny+1, Nx):
+            raise ValueError('Saved u/v must match eta times and staggered C-grid shapes.')
+        uc = .5*(u[frame_idx, :, :-1]+u[frame_idx, :, 1:])
+        vc = .5*(v[frame_idx, :-1, :]+v[frame_idx, 1:, :])
+        if arrow_reference is None:
+            peak = max(float(np.nanmax(np.hypot(uc, vc))), 1e-12)
+            unit = 10.**np.floor(np.log10(peak))
+            arrow_reference = next(a*unit for a in (1., 2., 5., 10.) if a*unit >= peak)
+        if not np.isfinite(arrow_reference) or arrow_reference <= 0:
+            raise ValueError('arrow_reference must be finite and positive.')
+        if arrow_scale is None:
+            arrow_scale = 20*arrow_reference
+        if not np.isfinite(arrow_scale) or arrow_scale <= 0:
+            raise ValueError('arrow_scale must be finite and positive.')
+        velocity = uc[:, ::arrow_stride, ::arrow_stride], vc[:, ::arrow_stride, ::arrow_stride]
+
     # --- Figure & first frame ---
     fig, ax = plt.subplots(figsize=figsize)
     extent = None
@@ -130,10 +167,24 @@ def animate_eta(out: dict,
 
     im = ax.imshow(eta_sel[0], origin="lower", extent=extent, vmin=vmin, vmax=vmax, cmap=cmap)
     if title:
-        ax.set_title(f"{title} | t = {_format_time(float(times[0]))}")
+        ax.set_title(f"{title} | t = {_format_time(float(times[0]))}",
+                     pad=22 if velocity_arrows else None)
 
     if show_colorbar:
         fig.colorbar(im, ax=ax, label="η [m]")
+
+    quiver = None
+    if velocity_arrows:
+        x = grid.x_c if grid is not None else np.arange(Nx)
+        y = grid.y_c if grid is not None else np.arange(Ny)
+        Xq, Yq = np.meshgrid(x[::arrow_stride], y[::arrow_stride])
+        quiver = ax.quiver(Xq, Yq, velocity[0][0], velocity[1][0],
+                           angles='uv', scale_units='width', scale=arrow_scale,
+                           width=.0035, color='0.1', minlength=0, zorder=3)
+        key_label = (f'{arrow_reference*1000:g} mm/s' if arrow_reference < .01
+                     else f'{arrow_reference:g} m/s')
+        ax.quiverkey(quiver, .95, 1.02, arrow_reference, key_label, labelpos='W',
+                     coordinates='axes', fontproperties={'size': 8})
 
     # --- Contours (robust to Matplotlib variants without QuadContourSet.collections) ---
     contour_artists = []  # will store the actual Artist objects drawn for contours
@@ -168,19 +219,11 @@ def animate_eta(out: dict,
                             colors=contour_colors, linewidths=contour_linewidths,
                             alpha=contour_alpha)
 
-        # Try standard attributes first
-        grabbed = False
-        if hasattr(cs, "collections"):
+        # Track this contour set only: velocity quivers also live in ax.collections.
+        if callable(getattr(cs, 'remove', None)):
+            contour_artists = [cs]
+        else:
             contour_artists = list(cs.collections)
-            grabbed = True
-        # Some versions also/only expose .artists
-        if not grabbed and hasattr(cs, "artists"):
-            contour_artists = list(cs.artists)
-            grabbed = True
-        # Fallback: infer from Axes collections immediately after drawing
-        if not grabbed and hasattr(ax, "collections"):
-            n = len(lvls) if isinstance(lvls, (list, tuple, np.ndarray)) else 1
-            contour_artists = list(ax.collections[-n:])
 
     if contours:
         _draw_contours(eta_sel[0])
@@ -189,10 +232,13 @@ def animate_eta(out: dict,
     def update(i):
         im.set_data(eta_sel[i])
         if title:
-            ax.set_title(f"{title} | t = {_format_time(float(times[i]))}")
+            ax.set_title(f"{title} | t = {_format_time(float(times[i]))}",
+                         pad=22 if velocity_arrows else None)
         if contours:
             _draw_contours(eta_sel[i])
-        return (im,)
+        if quiver is not None:
+            quiver.set_UVC(velocity[0][i], velocity[1][i])
+        return (im,) if quiver is None else (im, quiver)
 
     anim = animation.FuncAnimation(fig, update, frames=len(frame_idx),
                                    interval=interval, blit=False, repeat=repeat)
