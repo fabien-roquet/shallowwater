@@ -493,6 +493,28 @@ and final diagnostics are recorded beside the numerical cache. The sponge
 applies only nonpositive kinetic-energy work and leaves the mass tendency
 unchanged apart from the model's original continuity equation.
 
+Experiment 10 also has a two-panel 3D surface comparison, with rotation
+on the left and f = 0 on the right. Both branches start with **identical height
+and velocity fields** computed using the rotating setup, and have identical
+friction; only f changes during evolution. This isolates the role of rotation
+in retaining a height anomaly.
+
+```bash
+python scripts/10_geostrophic_adjustment.py --view 3d
+python scripts/10_geostrophic_adjustment.py --view 3d --replot
+```
+
+This writes `eta_10_3d.gif`, `eta_10_3d_initial.png` and
+`eta_10_3d_final.png`. Both runs stop at **36 hours**, saving uniformly every
+**two minutes** throughout. At 10 fps the movie lasts 108.1 seconds, with no
+change in playback speed. The view zooms to **[1000,3000] × [1000,3000] km**;
+the full 4000 km basin is simulated. Camera, colour and height scales match
+between panels and remain fixed. Relief is exaggerated and heights are in
+centimetres. The GIF uses ffmpeg to stream frames without retaining the whole
+movie in memory. Separate caches are `experiment_10_3d_adjustment.npz` and
+`experiment_10_3d_no_rotation.npz`. `--hours` changes the 3D duration;
+`--view both` also renders the original 2D experiment.
+
 ## Experiment 11: linear and nonlinear Rossby eddies
 
 ```bash

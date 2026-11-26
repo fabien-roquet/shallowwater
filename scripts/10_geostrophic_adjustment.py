@@ -173,15 +173,27 @@ def make_parser():
     parser.add_argument('--quick', action='store_true')
     parser.add_argument('--smoke', action='store_true')
     parser.add_argument('--replot', action='store_true')
+    parser.add_argument('--view', choices=('2d', '3d', 'both'), default='2d',
+                        help='Render the standard map, a 3D surface, or both.')
+    parser.add_argument('--hours', type=float, default=36., help='Duration of the 3D comparison in hours.')
     return parser
 
 
 def run_experiment(args):
-    if min(args.periods, args.sponge_hours, args.sponge_width_km) <= 0 or args.frames < 2:
+    if min(args.periods, args.sponge_hours, args.sponge_width_km, args.hours) <= 0 or args.frames < 2:
         raise ValueError('Use positive durations/width and at least two frames.')
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    grid, params, data, mask, series, summary = run_case(args)
-    render(args, grid, params, data, mask, series)
+    if args.view in ('2d', 'both'):
+        grid, params, data, mask, series, summary = run_case(args)
+        render(args, grid, params, data, mask, series)
+    if args.view in ('3d', 'both'):
+        from _adjustment_3d import render_3d, run_3d_case
+        grid, params, data = run_3d_case(args, setup_experiment,
+                                        ic_balanced_fraction, momentum_sponge)
+        _, _, nonrotating = run_3d_case(args, setup_experiment,
+                                        ic_balanced_fraction, momentum_sponge, f0=0.)
+        summary = dict(final_time_hours=float(data['time'][-1]/3600))
+        render_3d(args, grid, params, data, nonrotating)
     return data, summary
 
 
