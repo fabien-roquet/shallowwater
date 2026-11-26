@@ -425,6 +425,22 @@ through `velocity_arrows=True` and optional `arrow_stride`, `arrow_reference`
 and `arrow_scale`. Save `out_vars=("eta", "u", "v")` when running the model.
 Existing eta-only callers retain their original behavior by default.
 
+## Experiment 04: tides with and without rotation
+
+Run `python scripts/04_tides.py` to produce one `eta_04.gif`, with rotation
+on the left and no rotation on the right. Both panels share physical times,
+21 fixed filled-contour levels, a common colour bar, and 10 fps playback.
+The original 128 × 128 grid, 4000 km square basin, 4000 m depth, three-day
+integration, 15-day drag and identical M2 equilibrium-tide forcing are
+retained; only f differs (10⁻⁴ s⁻¹ versus zero).
+
+The old separate GIFs are preserved under `animations/archive/` after the
+comparison has rendered successfully. Height/time caches and configuration
+JSON are saved for both cases. Use `--replot` to redraw matching histories,
+`--quick` for a smaller grid, or `--smoke` for a short check. The notebook
+`notebooks/04_tides.ipynb` runs the same comparison and retains the coastal
+time–distance diagnostics.
+
 ## Experiment 06: comparing seiche modes
 
 `eta_06.gif` places `(m,n)=(1,0)` on the left and `(1,1)` on the right,
